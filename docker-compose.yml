@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: salary_management
+      POSTGRES_USER: salary_app
+      POSTGRES_PASSWORD: salary_app
+    ports:
+      - "5432:5432"
+    volumes:
+      - salary_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  salary_postgres_data:
+
