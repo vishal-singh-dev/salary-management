@@ -25,6 +25,9 @@ dev = [
 pythonpath = ["."]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "integration: tests requiring a disposable PostgreSQL database configured through TEST_DATABASE_URL",
+]
 
 [tool.ruff]
 line-length = 100
@@ -37,4 +40,3 @@ select = ["E", "F", "I", "UP", "B"]
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
 strict = true
-

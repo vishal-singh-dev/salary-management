@@ -18,9 +18,30 @@ DATABASE_URL=postgresql://username:password@ep-example-pooler.region.aws.neon.te
 The configuration layer selects SQLAlchemy's `psycopg` driver internally. Keep the real Neon
 credential only in `.env`; it is excluded from source control.
 
+## Initial data seed
+
+The employee seed is an initial-load operation. Populate current `exchange_rates` records for
+`INR`, `USD`, `GBP`, `EUR`, `CAD`, and `AUD` first, then run it against an empty employees table:
+
+```powershell
+uv run python -m app.seed.cli --count 10000 --random-seed 2026
+```
+
+The command combines names from `data/first_names.txt` and `data/last_names.txt`, generates one
+current salary record per employee, inserts data in batches, and records one audit summary event.
+It aborts instead of changing data when employees already exist.
+
 ## Checks
 
 ```powershell
 uv run ruff check .
 uv run pytest
+```
+
+Integration tests require a disposable PostgreSQL database and never use `DATABASE_URL` by
+default:
+
+```powershell
+$env:TEST_DATABASE_URL="postgresql://user:password@localhost:5432/salary_management_test"
+uv run pytest tests/integration
 ```
