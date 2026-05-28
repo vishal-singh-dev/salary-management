@@ -45,7 +45,7 @@ Current implementation status
 | Unit tests | Implemented |
 | PostgreSQL integration test | Implemented |
 | Next.js frontend | Pending |
-| Deployed app | Pending |
+| Deployed app | Render deployment config implemented |
 | Video demo | Pending |
 
 Tech Stack
@@ -83,11 +83,12 @@ salary-management/
 |   +-- .env.example
 |   +-- alembic.ini
 |   +-- pyproject.toml
-|   +-- README.md
+|   +-- plan.md
 +-- docker-compose.yml
 +-- .gitattributes
 +-- .gitignore
 +-- README.md
++-- render.yaml
 ```
 
 Backend Data Model
@@ -282,6 +283,96 @@ Expected response:
   "status": "ok",
   "environment": "development"
 }
+```
+
+Deploy The Backend
+==================
+
+The backend is configured for Render using the root `render.yaml` file.
+
+Render service configuration:
+
+| Setting | Value |
+| --- | --- |
+| Service type | Web Service |
+| Runtime | Python |
+| Root directory | `backend` |
+| Build command | `uv sync --frozen --no-dev` |
+| Start command | `uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| Health check path | `/health` |
+
+Required Render environment variables:
+
+| Variable | Value |
+| --- | --- |
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `ENVIRONMENT` | `production` |
+| `CORS_ORIGINS` | `[]` until the frontend URL exists |
+| `SQL_ECHO` | `false` |
+| `PYTHON_VERSION` | `3.12.7` |
+
+Deployment steps:
+
+1. Push the repository to GitHub.
+2. Create a new Render Web Service from the GitHub repository.
+3. Let Render detect the root `render.yaml` blueprint, or manually copy the settings above.
+4. Add `DATABASE_URL` in Render as a secret environment variable.
+5. Deploy the service.
+6. Open the public health endpoint:
+
+```text
+https://<render-service-name>.onrender.com/health
+```
+
+Expected production response:
+
+```json
+{
+  "status": "ok",
+  "environment": "production"
+}
+```
+
+Open the public API documentation:
+
+```text
+https://<render-service-name>.onrender.com/docs
+```
+
+The Render start command runs Alembic migrations before starting Uvicorn. This keeps the MVP
+deployment simple and ensures the database schema is current after each deploy.
+
+When the frontend is deployed, update `CORS_ORIGINS` to a JSON list containing the public frontend
+origin, for example `["https://salary-management-ui.onrender.com"]`.
+
+One-Time Production Seed
+========================
+
+Run production seed commands only after the first successful deployment and migration.
+
+Use Render Shell from the deployed backend service:
+
+```bash
+uv run python -m app.seed.exchange_rate_cli
+uv run python -m app.seed.cli --count 10000 --random-seed 2026
+```
+
+Seed notes:
+
+- Run the FX master seed first.
+- Run the employee seed once for the demo database.
+- The employee seed refuses to run when employees already exist.
+- Do not put seed commands in the Render start command because that would execute them on every
+  deploy.
+
+Post-deploy checks:
+
+```text
+GET /health
+GET /docs
+GET /api/v1/employees?limit=10&offset=0
+GET /api/v1/analytics/salaries?country_code=IN&department=Engineering
+GET /api/v1/analytics/salaries?currency_basis=usd&department=Engineering
 ```
 
 API Reference
@@ -685,5 +776,5 @@ Assessment Notes
 ================
 
 This project is being built incrementally. Backend foundation and seeding are implemented first.
-The frontend, user-facing CRUD screens, insights dashboard, deployment configuration, and video demo
-will follow in later commits.
+The backend deployment configuration is now implemented. The frontend, user-facing CRUD screens,
+insights dashboard, public deployment execution, and video demo will follow in later commits.
