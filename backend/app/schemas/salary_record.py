@@ -25,6 +25,3 @@ class SalaryRead(SalaryCreate):
     exchange_rate_id: UUID
     effective_to: date | None
     created_at: datetime
-    total_amount: Decimal
-    base_amount_usd: Decimal
-    total_amount_usd: Decimal

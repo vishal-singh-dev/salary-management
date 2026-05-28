@@ -35,3 +35,10 @@ class EmployeeRead(EmployeeBase):
     id: UUID
     created_at: datetime
     current_salary: SalaryRead | None = None
+
+
+class EmployeeList(BaseModel):
+    items: list[EmployeeRead]
+    total: int
+    limit: int
+    offset: int

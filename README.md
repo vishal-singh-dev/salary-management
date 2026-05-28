@@ -284,6 +284,262 @@ Expected response:
 }
 ```
 
+API Reference
+=============
+
+Interactive OpenAPI documentation is available when the backend is running:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+API conventions:
+
+- All request and response bodies use JSON.
+- Dates use ISO format, for example `2026-01-01`.
+- Money values are represented as decimal strings in API examples to avoid floating point ambiguity.
+- Employee detail routes use the database UUID field named `id`.
+- The HR-facing employee identifier is stored separately as `employee_id`.
+- Mutating employee endpoints write an MVP audit event to `audit_events`.
+
+Health
+------
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/health` | Confirms the API process is running |
+
+Employee CRUD
+-------------
+
+Base path:
+
+```text
+/api/v1/employees
+```
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/v1/employees` | Create an employee with one initial salary record |
+| GET | `/api/v1/employees` | List employees with pagination |
+| GET | `/api/v1/employees/{employee_uuid}` | Read one employee by database UUID |
+| PATCH | `/api/v1/employees/{employee_uuid}` | Update employee profile fields |
+| DELETE | `/api/v1/employees/{employee_uuid}` | Soft delete an employee by setting `to_date` |
+
+Expected status codes:
+
+| Operation | Success | Common validation or business errors |
+| --- | --- | --- |
+| Create employee | `201 Created` | `400 Bad Request` for missing FX rate, `409 Conflict` for duplicate `employee_id`, `422 Unprocessable Entity` for invalid payload |
+| List employees | `200 OK` | `422 Unprocessable Entity` for invalid query parameters |
+| Read employee | `200 OK` | `404 Not Found` when the UUID does not exist |
+| Update employee | `200 OK` | `404 Not Found` when the UUID does not exist, `422 Unprocessable Entity` for invalid payload |
+| Delete employee | `204 No Content` | `404 Not Found` when the UUID does not exist |
+
+Create employee request:
+
+```json
+{
+  "employee_id": "EMP-000001",
+  "full_name": "Asha Patel",
+  "title": "HR Manager",
+  "department": "Human Resources",
+  "country_code": "US",
+  "from_date": "2026-01-01",
+  "initial_salary": {
+    "currency_code": "USD",
+    "base_amount": "120000.00",
+    "variable_amount": "10000.00",
+    "hra_allowance_amount": "0.00",
+    "pf_amount": "4800.00",
+    "gratuity_amount": "0.00",
+    "effective_from": "2026-01-01"
+  }
+}
+```
+
+Create employee notes:
+
+- `employee_id` is the HR-facing identifier.
+- API detail, update, and delete routes use the database UUID returned as `id`.
+- The salary currency must have a current row in `exchange_rates`.
+- Duplicate `employee_id` returns `409 Conflict`.
+
+List employees query parameters:
+
+| Parameter | Default | Notes |
+| --- | --- | --- |
+| `limit` | `50` | Minimum `1`, maximum `100` |
+| `offset` | `0` | Zero-based row offset |
+| `include_inactive` | `false` | When false, only employees where `to_date IS NULL` are returned |
+
+Example list request:
+
+```text
+GET /api/v1/employees?limit=25&offset=0
+```
+
+Example list response:
+
+```json
+{
+  "items": [
+    {
+      "id": "00000000-0000-0000-0000-000000000000",
+      "employee_id": "EMP-000001",
+      "full_name": "Asha Patel",
+      "title": "HR Manager",
+      "department": "Human Resources",
+      "country_code": "US",
+      "from_date": "2026-01-01",
+      "to_date": null,
+      "created_at": "2026-05-28T10:00:00Z",
+      "current_salary": {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "employee_id": "00000000-0000-0000-0000-000000000000",
+        "currency_code": "USD",
+        "base_amount": "120000.00",
+        "variable_amount": "10000.00",
+        "hra_allowance_amount": "0.00",
+        "pf_amount": "4800.00",
+        "gratuity_amount": "0.00",
+        "effective_from": "2026-01-01",
+        "effective_to": null,
+        "exchange_rate_id": "00000000-0000-0000-0000-000000000002",
+        "created_at": "2026-05-28T10:00:00Z"
+      }
+    }
+  ],
+  "total": 1,
+  "limit": 25,
+  "offset": 0
+}
+```
+
+Update employee request:
+
+```text
+PATCH /api/v1/employees/00000000-0000-0000-0000-000000000000
+```
+
+```json
+{
+  "title": "Senior HR Manager",
+  "department": "People Operations",
+  "country_code": "US"
+}
+```
+
+Update notes:
+
+- Only employee profile fields are updated by this endpoint.
+- Salary changes should be handled as separate effective-dated salary records in a later salary API.
+- Fields omitted from the request are left unchanged.
+
+Delete employee request:
+
+```text
+DELETE /api/v1/employees/00000000-0000-0000-0000-000000000000
+```
+
+Delete notes:
+
+- Delete is a soft delete.
+- The employee row remains in the database for auditability.
+- The API sets `employees.to_date` and hides the employee from default list and analytics results.
+
+Salary Analytics
+----------------
+
+Base path:
+
+```text
+/api/v1/analytics/salaries
+```
+
+This endpoint returns base salary distribution metrics for current salary records.
+
+Metrics returned:
+
+- employee count
+- minimum base salary
+- maximum base salary
+- mean base salary
+- median base salary
+- mode base salary
+
+Query parameters:
+
+| Parameter | Default | Notes |
+| --- | --- | --- |
+| `country_code` | `null` | Required when `currency_basis=local` |
+| `department` | `null` | Optional department filter |
+| `title` | `null` | Optional job title filter |
+| `include_inactive` | `false` | When false, only employees where `to_date IS NULL` are included |
+| `currency_basis` | `local` | `local` or `usd` |
+
+Local currency example:
+
+```text
+GET /api/v1/analytics/salaries?country_code=IN&department=Engineering
+```
+
+Example response:
+
+```json
+{
+  "filters": {
+    "country_code": "IN",
+    "department": "Engineering",
+    "title": null,
+    "include_inactive": false,
+    "currency_basis": "local"
+  },
+  "employee_count": 420,
+  "currency_code": "INR",
+  "min_base_salary": "500000.00",
+  "max_base_salary": "6000000.00",
+  "mean_base_salary": "2185000.00",
+  "median_base_salary": "2050000.00",
+  "mode_base_salary": "1800000.00"
+}
+```
+
+USD comparison example:
+
+```text
+GET /api/v1/analytics/salaries?currency_basis=usd&department=Engineering
+```
+
+Example empty response:
+
+```json
+{
+  "filters": {
+    "country_code": "IN",
+    "department": "Legal",
+    "title": null,
+    "include_inactive": false,
+    "currency_basis": "local"
+  },
+  "employee_count": 0,
+  "currency_code": null,
+  "min_base_salary": null,
+  "max_base_salary": null,
+  "mean_base_salary": null,
+  "median_base_salary": null,
+  "mode_base_salary": null
+}
+```
+
+Analytics notes:
+
+- Salary metrics use `employee_salary_records.base_amount`.
+- Only current salary records are included, meaning `effective_to IS NULL`.
+- Active employees are used by default, meaning `employees.to_date IS NULL`.
+- `currency_basis=local` requires `country_code` to avoid mixing currencies.
+- `currency_basis=usd` uses `base_amount * exchange_rates.rate_to_usd`.
+
 Testing
 =======
 
