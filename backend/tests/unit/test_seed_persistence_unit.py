@@ -12,7 +12,8 @@ from app.seed.persistence import (
 )
 
 
-def test_seed_rejects_database_with_existing_employees() -> None:
+def test_seed_initial_load_guard() -> None:
+    # Intent: the seed workflow refuses to mutate a database that already has employees.
     session = Mock()
     session.scalar.return_value = 1
 
@@ -20,7 +21,8 @@ def test_seed_rejects_database_with_existing_employees() -> None:
         assert_empty_employee_dataset(session)
 
 
-def test_persist_seed_data_batches_inserts_and_adds_one_audit_summary() -> None:
+def test_seed_batch_persistence() -> None:
+    # Intent: seed persistence batches inserts and writes one audit summary event.
     rates = {
         currency: uuid.uuid5(uuid.NAMESPACE_DNS, currency) for currency in required_currencies()
     }

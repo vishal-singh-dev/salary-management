@@ -36,7 +36,8 @@ def add_current_exchange_rates(session: Session) -> dict[str, uuid.UUID]:
     return rate_ids
 
 
-def test_seed_persists_employees_salaries_and_one_audit_event(database_session: Session) -> None:
+def test_seed_database_persistence(database_session: Session) -> None:
+    # Intent: seed records persist correctly against PostgreSQL with employee/salary counts.
     rates = add_current_exchange_rates(database_session)
     seed_data = generate_seed_records(25, 2026, ["Asha"], ["Patel"], rates)
 

@@ -10,7 +10,8 @@ from app.schemas.employee import EmployeeCreate
 from app.schemas.salary_record import SalaryCreate
 
 
-def test_employee_create_requires_valid_initial_salary() -> None:
+def test_employee_create_schema() -> None:
+    # Intent: employee creation accepts profile data plus the initial salary structure.
     employee = EmployeeCreate(
         employee_id="EMP-000001",
         full_name="Asha Patel",
@@ -32,7 +33,8 @@ def test_employee_create_requires_valid_initial_salary() -> None:
     assert employee.initial_salary.base_amount == Decimal("1200000.00")
 
 
-def test_salary_record_rejects_non_positive_base_salary() -> None:
+def test_salary_base_amount_validation() -> None:
+    # Intent: salary input rejects zero or negative base pay.
     with pytest.raises(ValidationError):
         SalaryCreate(
             currency_code="USD",
@@ -41,7 +43,8 @@ def test_salary_record_rejects_non_positive_base_salary() -> None:
         )
 
 
-def test_audit_event_schema_exposes_mvp_business_event_fields() -> None:
+def test_audit_event_schema() -> None:
+    # Intent: audit responses expose the MVP business event fields used by activity history.
     event = AuditEventRead(
         id=uuid4(),
         occurred_at=datetime.now(UTC),

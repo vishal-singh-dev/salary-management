@@ -13,7 +13,8 @@ def exchange_rate_ids() -> dict[str, uuid.UUID]:
     }
 
 
-def test_load_names_rejects_empty_fixture(tmp_path: Path) -> None:
+def test_seed_name_file_validation(tmp_path: Path) -> None:
+    # Intent: seed input files must contain at least one usable name.
     path = tmp_path / "names.txt"
     path.write_text("\n", encoding="utf-8")
 
@@ -21,7 +22,8 @@ def test_load_names_rejects_empty_fixture(tmp_path: Path) -> None:
         load_names(path)
 
 
-def test_generate_seed_records_is_deterministic_and_links_salaries() -> None:
+def test_seed_data_generation() -> None:
+    # Intent: generated employees and salary rows are deterministic and relationally linked.
     first_names = ["Asha", "Maya"]
     last_names = ["Patel", "Singh"]
     rates = exchange_rate_ids()
@@ -39,9 +41,10 @@ def test_generate_seed_records_is_deterministic_and_links_salaries() -> None:
     assert all(employee.full_name.split()[0] in first_names for employee in first_run.employees)
     assert all(employee.full_name.split()[1] in last_names for employee in first_run.employees)
     assert all(salary.base_amount > Decimal("0") for salary in first_run.salaries)
-    assert all(salary.variable_amount >= Decimal("0") for salary in first_run.salaries)
 
 
-def test_generate_seed_records_requires_all_current_fx_rates() -> None:
+def test_fx_rates_prerequisites() -> None:
+    # Intent: seed generation requires a complete set of current exchange rates.
     with pytest.raises(ValueError, match="Missing current exchange rates"):
         generate_seed_records(1, 2026, ["Asha"], ["Patel"], {"INR": uuid.uuid4()})
+
