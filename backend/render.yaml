@@ -12,7 +12,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: CORS_ORIGINS
-        value: "[*]"
+        value: '["*"]'
       - key: SQL_ECHO
         value: "false"
       - key: PYTHON_VERSION

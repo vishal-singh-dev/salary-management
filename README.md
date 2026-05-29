@@ -39,12 +39,14 @@ Current implementation status
 | Employee schema | Implemented |
 | Salary schema | Implemented |
 | Exchange-rate master schema | Implemented |
+| Filter master-data schema | Implemented |
 | Audit event schema | Implemented |
 | Fixed FX master seed | Implemented |
+| Filter master-data seed | Implemented |
 | 10,000 employee seed | Implemented |
 | Unit tests | Implemented |
 | PostgreSQL integration test | Implemented |
-| Next.js frontend | Pending |
+| Next.js frontend | Implemented |
 | Deployed app | Render deployment config implemented |
 | Video demo | Pending |
 
@@ -84,6 +86,13 @@ salary-management/
 |   +-- alembic.ini
 |   +-- pyproject.toml
 |   +-- plan.md
++-- frontend/
+|   +-- app/
+|   +-- components/
+|   +-- lib/
+|   +-- tests/
+|   +-- .env.example
+|   +-- package.json
 +-- docker-compose.yml
 +-- .gitattributes
 +-- .gitignore
@@ -101,6 +110,7 @@ The backend uses normalized tables:
 | `employees` | Employee profile, title, department, country, and employment period |
 | `employee_salary_records` | Effective-dated salary structure for each employee |
 | `exchange_rates` | Current and historical currency-to-USD rates |
+| `master_data` | Filter master values for country, department, and job title |
 | `audit_events` | MVP audit trail for business events |
 
 Salary records include:
@@ -186,6 +196,43 @@ Use this local connection string in `backend/.env`:
 DATABASE_URL=postgresql://salary_app:salary_app@localhost:5432/salary_management
 ```
 
+Docker Compose Setup
+====================
+
+The repository includes Docker setup for PostgreSQL, the FastAPI backend, the Next.js frontend,
+database migrations, fixed master data, and the initial 10,000-employee demo seed.
+
+Start the full stack:
+
+```powershell
+cd C:\Users\Vishal\salary-management
+docker compose up --build
+```
+
+Open:
+
+```text
+Frontend: http://localhost:3000
+Backend:  http://localhost:8000
+API docs: http://localhost:8000/docs
+```
+
+The backend container runs Alembic migrations, seeds exchange rates and filter master data, and
+creates the 10,000 employee salary dataset when the employee table is empty. On later restarts, it
+keeps existing employees and only ensures fixed master data is present.
+
+Stop the stack:
+
+```powershell
+docker compose down
+```
+
+Remove the local PostgreSQL Docker volume:
+
+```powershell
+docker compose down -v
+```
+
 Database Setup
 ==============
 
@@ -228,10 +275,46 @@ uv run python -m app.seed.exchange_rate_cli
 
 This command is idempotent. It inserts missing current rows and leaves existing current rows alone.
 
+Filter Master Data
+==================
+
+Dashboard and employee filters use fixed master-data rows for:
+
+- country
+- department
+- job title
+
+Insert the fixed MVP filter master rows:
+
+```powershell
+uv run python -m app.seed.master_data_cli
+```
+
+This command is idempotent. It inserts values from `app.seed.generator` and leaves existing rows
+alone.
+
 Employee And Salary Seeding
 ===========================
 
-Run employee and salary seeding only after migrations and FX master setup.
+Run employee and salary seeding only after migrations, FX master setup, and filter master setup.
+
+Recommended one-command setup:
+
+```powershell
+uv run salary-seed-all --count 10000 --random-seed 2026
+```
+
+Equivalent module command:
+
+```powershell
+uv run python -m app.seed.all_cli --count 10000 --random-seed 2026
+```
+
+This combined command runs these steps in order:
+
+- fixed FX master seed
+- filter master-data seed
+- employee and salary seed
 
 ```powershell
 uv run python -m app.seed.cli --count 10000 --random-seed 2026
@@ -283,6 +366,58 @@ Expected response:
   "status": "ok",
   "environment": "development"
 }
+```
+
+Run The Frontend
+================
+
+Install frontend dependencies:
+
+```powershell
+cd C:\Users\Vishal\salary-management\frontend
+npm install
+```
+
+Create frontend environment file:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Set the backend URL in `frontend/.env.local`:
+
+```dotenv
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Start the frontend:
+
+```powershell
+npm run dev
+```
+
+Open:
+
+```text
+http://localhost:3000
+```
+
+Frontend routes:
+
+| Route | Purpose |
+| --- | --- |
+| `/dashboard` | Salary insights dashboard with filters |
+| `/employees` | Employee list and pagination |
+| `/employees/new` | Create employee with initial salary |
+| `/employees/{id}` | Employee details and profile update |
+| `/employees/{id}/salary` | Read-only current salary details |
+
+Frontend validation commands:
+
+```powershell
+npm run test
+npm run lint
+npm run build
 ```
 
 Deploy The Backend
@@ -354,12 +489,14 @@ Use Render Shell from the deployed backend service:
 
 ```bash
 uv run python -m app.seed.exchange_rate_cli
+uv run python -m app.seed.master_data_cli
 uv run python -m app.seed.cli --count 10000 --random-seed 2026
 ```
 
 Seed notes:
 
 - Run the FX master seed first.
+- Run the filter master-data seed before employee seed.
 - Run the employee seed once for the demo database.
 - The employee seed refuses to run when employees already exist.
 - Do not put seed commands in the Render start command because that would execute them on every
@@ -538,6 +675,43 @@ Delete notes:
 - Delete is a soft delete.
 - The employee row remains in the database for auditability.
 - The API sets `employees.to_date` and hides the employee from default list and analytics results.
+
+Master Data
+-----------
+
+Base path:
+
+```text
+/api/v1/master-data
+```
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/master-data` | List all dropdown master values |
+| GET | `/api/v1/master-data?category=department` | List values for one category |
+
+Categories:
+
+- `country`
+- `department`
+- `job_title`
+
+Example response:
+
+```json
+[
+  {
+    "category": "department",
+    "description": "Engineering",
+    "value": "ENG"
+  }
+]
+```
+
+Frontend usage:
+
+- Use `description` as the dropdown label.
+- Use `value` as the analytics query parameter value.
 
 Salary Analytics
 ----------------
