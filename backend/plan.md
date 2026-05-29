@@ -27,6 +27,7 @@ Implemented backend scope:
 - SQLAlchemy database engine and session setup.
 - Alembic migrations.
 - Employee, salary, exchange-rate, and audit models.
+- Filter master-data model for country, department, and job title values.
 - Pydantic schemas for API validation and serialization.
 - Health check endpoint.
 - Employee CRUD API.
@@ -49,6 +50,7 @@ Tables:
 | `employees` | Stores employee profile and employment period |
 | `employee_salary_records` | Stores effective-dated salary records |
 | `exchange_rates` | Stores current and historical FX rates to USD |
+| `master_data` | Stores fixed filter values used by dashboard and employee screens |
 | `audit_events` | Stores MVP audit events for important backend actions |
 
 Employee design:
@@ -76,6 +78,14 @@ Exchange-rate design:
 - Rates are modeled from source currency to USD.
 - Current rows have `effective_to IS NULL`.
 - The MVP seed inserts fixed master rows for INR, USD, GBP, EUR, CAD, and AUD.
+
+Master-data design:
+
+- Country, department, and job title filter values are stored in `master_data`.
+- `category` identifies the filter group, such as `country`, `department`, or `job_title`.
+- `description` stores the display value used by the user.
+- `value` stores a stable numeric code for each description inside a category.
+- Seed values come from `app.seed.generator` so filters match generated employees.
 
 Audit design:
 
@@ -240,9 +250,10 @@ The backend was planned and built incrementally:
 6. Add health endpoint and test.
 7. Add deterministic seed generator unit tests and implementation.
 8. Add seed persistence and fixed FX master seed.
-9. Add employee CRUD API and integration tests.
-10. Add salary analytics API and integration tests.
-11. Document setup, commands, and API usage.
+9. Add fixed filter master-data seed.
+10. Add employee CRUD API and integration tests.
+11. Add salary analytics API and integration tests.
+12. Document setup, commands, and API usage.
 
 MVP Tradeoffs
 =============
@@ -255,4 +266,3 @@ Intentional MVP choices:
 - FX rates are fixed master seed values for the MVP.
 - Salary analytics use `base_amount` as the primary metric.
 - Authentication and authorization are deferred 
-

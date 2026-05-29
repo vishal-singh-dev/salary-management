@@ -33,7 +33,7 @@ def test_salary_analytics_filters(client: TestClient) -> None:
     # Intent: salary analytics supports country and department filters with mean/median/mode.
     response = client.get(
         "/api/v1/analytics/salaries",
-        params={"country_code": "IN", "department": "Engineering"},
+        params={"country_code": "IN", "department": "ENG"},
     )
 
     assert response.status_code == 200
@@ -51,11 +51,11 @@ def test_salary_analytics_excludes_inactive_by_default(client: TestClient) -> No
     # Intent: inactive employees are excluded unless include_inactive is explicitly true.
     active_response = client.get(
         "/api/v1/analytics/salaries",
-        params={"country_code": "IN", "department": "Finance"},
+        params={"country_code": "IN", "department": "FIN"},
     )
     inactive_response = client.get(
         "/api/v1/analytics/salaries",
-        params={"country_code": "IN", "department": "Finance", "include_inactive": True},
+        params={"country_code": "IN", "department": "FIN", "include_inactive": True},
     )
 
     assert active_response.json()["employee_count"] == 0
@@ -73,7 +73,7 @@ def test_salary_analytics_usd_basis(client: TestClient) -> None:
     # Intent: USD basis supports cross-country salary comparison.
     response = client.get(
         "/api/v1/analytics/salaries",
-        params={"currency_basis": "usd", "department": "Engineering"},
+        params={"currency_basis": "usd", "department": "ENG"},
     )
 
     assert response.status_code == 200
@@ -81,6 +81,17 @@ def test_salary_analytics_usd_basis(client: TestClient) -> None:
     assert body["employee_count"] == 4
     assert body["currency_code"] == "USD"
     assert body["mean_base_salary"] == "55500.00"
+
+
+def test_salary_analytics_supports_job_title_master_value(client: TestClient) -> None:
+    # Intent: title filters accept compact master-data values from the frontend dropdown.
+    response = client.get(
+        "/api/v1/analytics/salaries",
+        params={"country_code": "IN", "department": "ENG", "title": "SWE"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["employee_count"] == 2
 
 
 def _add_salary_fixture_data(session: Session) -> None:
@@ -104,10 +115,24 @@ def _add_salary_fixture_data(session: Session) -> None:
     session.flush()
 
     _add_employee_salary(
-        session, "EMP-001", "IN", "Engineering", "Engineer", "INR", 1_000_000, inr_rate.id
+        session,
+        "EMP-001",
+        "IN",
+        "Engineering",
+        "Software Engineer",
+        "INR",
+        1_000_000,
+        inr_rate.id,
     )
     _add_employee_salary(
-        session, "EMP-002", "IN", "Engineering", "Engineer", "INR", 1_000_000, inr_rate.id
+        session,
+        "EMP-002",
+        "IN",
+        "Engineering",
+        "Software Engineer",
+        "INR",
+        1_000_000,
+        inr_rate.id,
     )
     _add_employee_salary(
         session, "EMP-003", "IN", "Engineering", "Manager", "INR", 3_000_000, inr_rate.id

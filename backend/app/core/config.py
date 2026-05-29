@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     app_name: str = "Salary Management API"
     environment: str = "development"
     database_url: PostgresDsn
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: list[str] = ["*"]
     sql_echo: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")

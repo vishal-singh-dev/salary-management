@@ -12,6 +12,9 @@ dependencies = [
     "uvicorn[standard]>=0.34.0,<1",
 ]
 
+[project.scripts]
+salary-seed-all = "app.seed.setup_cli:main"
+
 [dependency-groups]
 dev = [
     "httpx>=0.28.0,<1",
