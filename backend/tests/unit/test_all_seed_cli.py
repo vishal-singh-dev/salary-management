@@ -12,7 +12,10 @@ def test_all_seed_cli_defaults(monkeypatch) -> None:
     assert args.count == 10_000
     assert args.random_seed == 2026
     assert args.batch_size == 1000
-    assert args.first_names_file == Path("app/seed/setup_cli.py").resolve().parents[2] / "data" / "first_names.txt"
+    assert (
+        args.first_names_file
+        == Path("app/seed/setup_cli.py").resolve().parents[2] / "data" / "first_names.txt"
+    )
 
 
 def test_all_seed_cli_accepts_employee_seed_options(monkeypatch, tmp_path) -> None:

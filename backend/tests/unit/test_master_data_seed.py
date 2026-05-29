@@ -17,15 +17,17 @@ def test_fixed_master_data_contains_filter_values() -> None:
     assert {record.value for record in records if record.category == COUNTRY_CATEGORY} == {
         country.code for country in COUNTRIES
     }
-    assert {record.description for record in records if record.category == DEPARTMENT_CATEGORY} == set(
-        DEPARTMENTS
-    )
+    department_descriptions = {
+        record.description for record in records if record.category == DEPARTMENT_CATEGORY
+    }
+    assert department_descriptions == set(DEPARTMENTS)
     assert {record.value for record in records if record.category == DEPARTMENT_CATEGORY} == set(
         DEPARTMENT_VALUES.values()
     )
-    assert {record.description for record in records if record.category == JOB_TITLE_CATEGORY} == set(
-        TITLES
-    )
+    title_descriptions = {
+        record.description for record in records if record.category == JOB_TITLE_CATEGORY
+    }
+    assert title_descriptions == set(TITLES)
     assert {record.value for record in records if record.category == JOB_TITLE_CATEGORY} == set(
         JOB_TITLE_VALUES.values()
     )
@@ -63,7 +65,10 @@ def test_fixed_master_data_department_and_title_use_short_query_values() -> None
     senior_engineer = next(
         record
         for record in records
-        if record.category == JOB_TITLE_CATEGORY and record.description == "Senior Software Engineer"
+        if (
+            record.category == JOB_TITLE_CATEGORY
+            and record.description == "Senior Software Engineer"
+        )
     )
 
     assert engineering.value == "ENG"

@@ -89,6 +89,17 @@ def test_employee_list_api(client: TestClient) -> None:
     assert body["items"][0]["employee_id"] == "EMP-000001"
 
 
+def test_employee_next_id_api(client: TestClient) -> None:
+    # Intent: employee creation forms can request the next HR-facing employee identifier.
+    client.post("/api/v1/employees", json=employee_payload("EMP-000001"))
+    client.post("/api/v1/employees", json=employee_payload("EMP-000010"))
+
+    response = client.get("/api/v1/employees/next-id")
+
+    assert response.status_code == 200
+    assert response.json() == {"employee_id": "EMP-000011"}
+
+
 def test_employee_get_update_delete_api(client: TestClient) -> None:
     # Intent: employee detail, profile update, and soft delete work through the API.
     created = client.post("/api/v1/employees", json=employee_payload()).json()
@@ -113,4 +124,3 @@ def test_employee_get_update_delete_api(client: TestClient) -> None:
 
     all_list = client.get("/api/v1/employees?include_inactive=true")
     assert all_list.json()["total"] == 1
-

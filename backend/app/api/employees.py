@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import uuid
 from datetime import UTC, datetime
 from typing import Annotated
@@ -11,10 +12,19 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import get_session
 from app.models import AuditEvent, Employee, EmployeeSalaryRecord, ExchangeRate
-from app.schemas.employee import EmployeeCreate, EmployeeList, EmployeeRead, EmployeeUpdate
+from app.schemas.employee import (
+    EmployeeCreate,
+    EmployeeList,
+    EmployeeNextId,
+    EmployeeRead,
+    EmployeeUpdate,
+)
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 SessionDep = Annotated[Session, Depends(get_session)]
+EMPLOYEE_ID_PREFIX = "EMP-"
+EMPLOYEE_ID_WIDTH = 6
+EMPLOYEE_ID_NUMBER_PATTERN = re.compile(r"(\d+)$")
 
 
 @router.post("", response_model=EmployeeRead, status_code=status.HTTP_201_CREATED)
@@ -94,6 +104,24 @@ def list_employees(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/next-id", response_model=EmployeeNextId)
+def get_next_employee_id(session: SessionDep) -> EmployeeNextId:
+    employee_ids = session.scalars(select(Employee.employee_id)).all()
+    max_number = 0
+    max_width = EMPLOYEE_ID_WIDTH
+
+    for employee_id in employee_ids:
+        match = EMPLOYEE_ID_NUMBER_PATTERN.search(employee_id)
+        if not match:
+            continue
+        number_text = match.group(1)
+        max_number = max(max_number, int(number_text))
+        max_width = max(max_width, len(number_text))
+
+    next_number = max_number + 1
+    return EmployeeNextId(employee_id=f"{EMPLOYEE_ID_PREFIX}{next_number:0{max_width}d}")
 
 
 @router.get("/{employee_uuid}", response_model=EmployeeRead)

@@ -42,3 +42,7 @@ class EmployeeList(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class EmployeeNextId(BaseModel):
+    employee_id: str

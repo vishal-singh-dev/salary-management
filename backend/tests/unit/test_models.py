@@ -7,5 +7,6 @@ def test_schema_tables() -> None:
         "employees",
         "employee_salary_records",
         "exchange_rates",
+        "master_data",
         "audit_events",
     }
