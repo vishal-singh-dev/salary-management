@@ -48,6 +48,8 @@ salary-management/
 │   ├── Dockerfile
 │   └── package.json
 ├── docker-compose.yml
+├── DEPLOYMENT.md
+├── DIAGRAMS.md
 └── README.md
 ```
 
@@ -281,32 +283,57 @@ npm run build
 
 ## Deployment
 
-The project is Docker-ready and can be deployed to AWS with the same containers used locally.
-A straightforward path is:
+The current MVP deployment uses:
 
-1. Provision a PostgreSQL database with Amazon RDS or use an external PostgreSQL provider.
-2. Build and run the backend container with the production database URL.
-3. Build and run the frontend container with the public backend URL.
-4. Put the backend and frontend behind HTTPS using an AWS load balancer, reverse proxy, or managed
-   container service.
+```text
+Vercel frontend -> Render HTTPS proxy -> AWS EC2 backend -> Neon PostgreSQL
+```
+
+See:
+
+- [DEPLOYMENT.md](DEPLOYMENT.md) for deployment structure and environment variables.
+- [DIAGRAMS.md](DIAGRAMS.md) for system, deployment, request, seed, and loader diagrams.
+
+The backend runs as a Docker container on EC2 and connects to Neon PostgreSQL. The Render proxy
+exists because Vercel serves the frontend over HTTPS, while the EC2 backend currently exposes HTTP.
+Browsers block HTTPS pages from calling HTTP APIs directly, so the proxy keeps browser traffic HTTPS
+and forwards requests to EC2.
 
 Backend environment variables:
 
 ```text
 DATABASE_URL=<your PostgreSQL connection string>
 ENVIRONMENT=production
-CORS_ORIGINS=["https://your-frontend-domain"]
+CORS_ORIGINS=["*"]
 SQL_ECHO=false
+SEED_EMPLOYEE_COUNT=10000
+SEED_RANDOM_SEED=2026
+SEED_BATCH_SIZE=1000
 ```
 
 Frontend environment variable:
 
 ```text
-PUBLIC_API_BASE_URL=https://your-backend-domain
+PUBLIC_API_BASE_URL=https://<render-proxy>.onrender.com
+```
+
+Render proxy environment variables:
+
+```text
+BACKEND_BASE_URL=http://<ec2-public-ip>:8000
+FRONTEND_ORIGIN=https://<vercel-frontend>.vercel.app
+NODE_VERSION=22
 ```
 
 The backend Docker startup runs migrations and bootstraps fixed seed data before starting the API.
 Employee demo data is created only when the employee table is empty.
+
+Deployment checks:
+
+```text
+GET https://<render-proxy>.onrender.com/health
+GET https://<render-proxy>.onrender.com/api/v1/master-data?category=Currency
+```
 
 ## Getting Help
 
