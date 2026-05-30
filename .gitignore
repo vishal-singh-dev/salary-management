@@ -1,8 +1,5 @@
 .env
 .venv/
-node_modules/
-.next/
-out/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
@@ -10,3 +7,7 @@ __pycache__/
 .coverage
 htmlcov/
 *.pyc
+render*
+node_modules/
+.next/
+out/
