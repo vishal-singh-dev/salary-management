@@ -15,6 +15,14 @@ const employeePageCache = new Map<string, EmployeeListResponse>();
 const maxCachedEmployeePages = 3;
 const employeeRecordCache = new Map<string, Employee>();
 let masterDataCache: MasterData[] | null = null;
+export type ApiLoadingState = {
+  isLoading: boolean;
+  action: "load" | "save";
+};
+
+const loadingListeners = new Set<(state: ApiLoadingState) => void>();
+let activeRequestCount = 0;
+let activeSaveRequestCount = 0;
 
 export class ApiError extends Error {
   constructor(
@@ -45,48 +53,70 @@ export function buildUrl(
   return url.toString();
 }
 
+export function subscribeToApiLoading(listener: (state: ApiLoadingState) => void) {
+  loadingListeners.add(listener);
+  listener(currentLoadingState());
+
+  return () => {
+    loadingListeners.delete(listener);
+  };
+}
+
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(buildUrl(path), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...init?.headers,
-    },
-  });
+  const action = requestAction(init);
+  beginApiRequest(action);
+  try {
+    const response = await fetch(buildUrl(path), {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...init?.headers,
+      },
+    });
 
-  if (!response.ok) {
-    let message = `Request failed with status ${response.status}`;
-    try {
-      const body = (await response.json()) as { detail?: string };
-      message = body.detail ?? message;
-    } catch {
-      // Keep the generic message when the backend does not return JSON.
+    if (!response.ok) {
+      let message = `Request failed with status ${response.status}`;
+      try {
+        const body = (await response.json()) as { detail?: string };
+        message = body.detail ?? message;
+      } catch {
+        // Keep the generic message when the backend does not return JSON.
+      }
+      throw new ApiError(message, response.status);
     }
-    throw new ApiError(message, response.status);
-  }
 
-  if (response.status === 204) {
-    return undefined as T;
-  }
+    if (response.status === 204) {
+      return undefined as T;
+    }
 
-  return (await response.json()) as T;
+    return (await response.json()) as T;
+  } finally {
+    endApiRequest(action);
+  }
 }
 
 export function getHealth() {
   return requestJson<HealthResponse>("/health");
 }
 
-export function listMasterData(category?: MasterData["category"]) {
+export function listMasterData(category?: MasterData["category_name"], parentCode?: string) {
   if (!category && masterDataCache) {
     return Promise.resolve(masterDataCache);
   }
 
   if (category && masterDataCache) {
-    return Promise.resolve(masterDataCache.filter((record) => record.category === category));
+    return Promise.resolve(
+      masterDataCache
+        .filter((record) => record.category_name === category)
+        .filter((record) => !parentCode || record.parent_code === parentCode),
+    );
   }
 
   return requestJson<MasterData[]>(
-    buildUrl("/api/v1/master-data", { category }).replace(getApiBaseUrl(), ""),
+    buildUrl("/api/v1/master-data", { category, parent_code: parentCode }).replace(
+      getApiBaseUrl(),
+      "",
+    ),
   ).then((records) => {
     if (!category) {
       masterDataCache = records;
@@ -199,4 +229,37 @@ function cacheEmployeePage(cacheKey: string, response: EmployeeListResponse) {
 
 function clearEmployeePageCache() {
   employeePageCache.clear();
+}
+
+function beginApiRequest(action: ApiLoadingState["action"]) {
+  activeRequestCount += 1;
+  if (action === "save") {
+    activeSaveRequestCount += 1;
+  }
+  notifyLoadingListeners();
+}
+
+function endApiRequest(action: ApiLoadingState["action"]) {
+  activeRequestCount = Math.max(activeRequestCount - 1, 0);
+  if (action === "save") {
+    activeSaveRequestCount = Math.max(activeSaveRequestCount - 1, 0);
+  }
+  notifyLoadingListeners();
+}
+
+function notifyLoadingListeners() {
+  const state = currentLoadingState();
+  loadingListeners.forEach((listener) => listener(state));
+}
+
+function currentLoadingState(): ApiLoadingState {
+  return {
+    isLoading: activeRequestCount > 0,
+    action: activeSaveRequestCount > 0 ? "save" : "load",
+  };
+}
+
+function requestAction(init?: RequestInit): ApiLoadingState["action"] {
+  const method = init?.method?.toUpperCase() ?? "GET";
+  return method === "GET" ? "load" : "save";
 }

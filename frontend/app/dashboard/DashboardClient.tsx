@@ -102,9 +102,17 @@ export function DashboardClient() {
   }, [appliedFilters]);
 
   const currencyCode = analytics?.currency_code ?? (appliedFilters.currencyBasis === "usd" ? "USD" : null);
-  const countryOptions = useMemo(() => optionsFor(masterData, "country"), [masterData]);
-  const departmentOptions = useMemo(() => optionsFor(masterData, "department"), [masterData]);
-  const titleOptions = useMemo(() => optionsFor(masterData, "job_title"), [masterData]);
+  const countryOptions = useMemo(() => optionsFor(masterData, "Country"), [masterData]);
+  const departmentOptions = useMemo(
+    () => optionsFor(masterData, "Department", draftFilters.countryCode),
+    [masterData, draftFilters.countryCode],
+  );
+  const titleOptions = useMemo(
+    () => optionsFor(masterData, "JobTitle", draftFilters.department),
+    [masterData, draftFilters.department],
+  );
+  const isDepartmentDisabled = draftFilters.countryCode === "";
+  const isTitleDisabled = draftFilters.department === "";
 
   return (
     <>
@@ -118,14 +126,16 @@ export function DashboardClient() {
                 setDraftFilters((current) => ({
                   ...current,
                   countryCode: event.target.value,
+                  department: "",
+                  title: "",
                 }))
               }
               value={draftFilters.countryCode}
             >
               {countryOptions.length === 0 ? <option value="IN">INDIA</option> : null}
               {countryOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.description}
+                <option key={option.code} value={option.code}>
+                  {option.display_name}
                 </option>
               ))}
             </select>
@@ -133,16 +143,37 @@ export function DashboardClient() {
           <div className="field">
             <label htmlFor="department">Department</label>
             <select
+              aria-disabled={isDepartmentDisabled}
+              className={isDepartmentDisabled ? "locked-control" : undefined}
               id="department"
-              onChange={(event) =>
-                setDraftFilters((current) => ({ ...current, department: event.target.value }))
-              }
+              onChange={(event) => {
+                if (!isDepartmentDisabled) {
+                  setDraftFilters((current) => ({
+                    ...current,
+                    department: event.target.value,
+                    title: "",
+                  }));
+                }
+              }}
+              onKeyDown={(event) => {
+                if (isDepartmentDisabled) {
+                  event.preventDefault();
+                }
+              }}
+              onMouseDown={(event) => {
+                if (isDepartmentDisabled) {
+                  event.preventDefault();
+                }
+              }}
+              tabIndex={isDepartmentDisabled ? -1 : undefined}
               value={draftFilters.department}
             >
-              <option value="">Select department</option>
+              <option value="">
+                {isDepartmentDisabled ? "Select country first" : "Select department"}
+              </option>
               {departmentOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.description}
+                <option key={option.code} value={option.code}>
+                  {option.display_name}
                 </option>
               ))}
             </select>
@@ -150,16 +181,33 @@ export function DashboardClient() {
           <div className="field">
             <label htmlFor="title">Job title</label>
             <select
+              aria-disabled={isTitleDisabled}
+              className={isTitleDisabled ? "locked-control" : undefined}
               id="title"
-              onChange={(event) =>
-                setDraftFilters((current) => ({ ...current, title: event.target.value }))
-              }
+              onChange={(event) => {
+                if (!isTitleDisabled) {
+                  setDraftFilters((current) => ({ ...current, title: event.target.value }));
+                }
+              }}
+              onKeyDown={(event) => {
+                if (isTitleDisabled) {
+                  event.preventDefault();
+                }
+              }}
+              onMouseDown={(event) => {
+                if (isTitleDisabled) {
+                  event.preventDefault();
+                }
+              }}
+              tabIndex={isTitleDisabled ? -1 : undefined}
               value={draftFilters.title}
             >
-              <option value="">Select job title</option>
+              <option value="">
+                {isTitleDisabled ? "Select department first" : "Select job title"}
+              </option>
               {titleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.description}
+                <option key={option.code} value={option.code}>
+                  {option.display_name}
                 </option>
               ))}
             </select>

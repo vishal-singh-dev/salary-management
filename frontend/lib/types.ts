@@ -6,9 +6,13 @@ export type HealthResponse = {
 };
 
 export type MasterData = {
-  category: "country" | "department" | "job_title";
-  description: string;
-  value: string;
+  category_name: "Country" | "Department" | "JobTitle" | "Currency";
+  display_name: string;
+  code: string;
+  parent_category_name: string | null;
+  parent_code: string | null;
+  sort_order: number | null;
+  is_active: boolean;
 };
 
 export type SalaryRecord = {
@@ -29,7 +33,9 @@ export type SalaryRecord = {
 export type Employee = {
   id: string;
   employee_id: string;
-  full_name: string;
+  first_name: string;
+  last_name: string;
+  gender: string | null;
   title: string;
   department: string;
   country_code: string;
@@ -52,7 +58,9 @@ export type EmployeeNextIdResponse = {
 
 export type EmployeeCreateInput = {
   employee_id: string;
-  full_name: string;
+  first_name: string;
+  last_name: string;
+  gender?: string | null;
   title: string;
   department: string;
   country_code: string;
@@ -69,7 +77,17 @@ export type EmployeeCreateInput = {
 };
 
 export type EmployeeUpdateInput = Partial<
-  Pick<Employee, "full_name" | "title" | "department" | "country_code" | "from_date" | "to_date">
+  Pick<
+    Employee,
+    | "first_name"
+    | "last_name"
+    | "gender"
+    | "title"
+    | "department"
+    | "country_code"
+    | "from_date"
+    | "to_date"
+  >
 >;
 
 export type SalaryAnalyticsFilters = {

@@ -153,7 +153,8 @@ button {
 .filter-grid {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: 170px 190px 210px 150px 160px;
+  justify-content: start;
 }
 
 .field {
@@ -174,6 +175,23 @@ button {
   border-radius: 10px;
   min-height: 42px;
   padding: 9px 10px;
+  width: 100%;
+}
+
+.field input:disabled,
+.field select:disabled,
+.editable-detail select:disabled {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.field select.locked-control,
+.editable-detail select.locked-control {
+  background: #ffffff;
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 .checkbox-row {
@@ -515,6 +533,115 @@ th {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+}
+
+.loader-overlay {
+  align-items: center;
+  backdrop-filter: blur(5px);
+  background: rgba(246, 247, 249, 0.72);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 60;
+}
+
+.loader-panel {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 22px 60px rgba(23, 32, 51, 0.18);
+  display: flex;
+  gap: 18px;
+  max-width: min(420px, 100%);
+  min-width: min(360px, 100%);
+  padding: 20px 22px;
+}
+
+.loader-mark {
+  align-items: center;
+  border: 1px solid var(--text);
+  color: var(--text);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 0.82rem;
+  font-weight: 900;
+  gap: 2px;
+  height: 44px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  position: relative;
+  width: 44px;
+}
+
+.loader-mark::after {
+  animation: loader-sweep 1.4s ease-in-out infinite;
+  background: var(--primary);
+  bottom: -1px;
+  content: "";
+  height: 3px;
+  left: -1px;
+  position: absolute;
+  width: 18px;
+}
+
+.loader-content {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+}
+
+.loader-track {
+  background: var(--surface-muted);
+  border-radius: 999px;
+  height: 4px;
+  overflow: hidden;
+}
+
+.loader-bar {
+  animation: loader-progress 1.2s ease-in-out infinite;
+  background: var(--primary);
+  border-radius: inherit;
+  height: 100%;
+  width: 45%;
+}
+
+.loader-title {
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.loader-copy {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 3px 0 0;
+}
+
+@keyframes loader-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  100% {
+    transform: translateX(240%);
+  }
+}
+
+@keyframes loader-sweep {
+  0%,
+  100% {
+    left: -1px;
+    width: 16px;
+  }
+
+  50% {
+    left: 27px;
+    width: 18px;
+  }
 }
 
 @media (max-width: 980px) {

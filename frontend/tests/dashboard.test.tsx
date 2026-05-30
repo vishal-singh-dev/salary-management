@@ -14,7 +14,7 @@ vi.mock("@/lib/api", () => ({
 const analyticsResponse: SalaryAnalyticsResponse = {
   filters: {
     country_code: "IN",
-    department: "Engineering",
+    department: "HR",
     title: null,
     include_inactive: false,
     currency_basis: "local",
@@ -29,12 +29,12 @@ const analyticsResponse: SalaryAnalyticsResponse = {
 };
 
 const masterDataResponse: MasterData[] = [
-  { category: "country", description: "INDIA", value: "IN" },
-  { category: "country", description: "GERMANY", value: "DE" },
-  { category: "department", description: "Engineering", value: "ENG" },
-  { category: "department", description: "Finance", value: "FIN" },
-  { category: "job_title", description: "Software Engineer", value: "SWE" },
-  { category: "job_title", description: "Senior Software Engineer", value: "SR_SWE" },
+  master("Country", "India", "IN", null, null, 1),
+  master("Country", "Germany", "DE", null, null, 2),
+  master("Department", "HR", "HR", "Country", "IN", 1),
+  master("Department", "Finance", "FIN", "Country", "IN", 2),
+  master("JobTitle", "HR Finance", "HRF", "Department", "HR", 1),
+  master("JobTitle", "Finance Manager", "FIN_MGR", "Department", "FIN", 2),
 ];
 
 describe("DashboardClient", () => {
@@ -60,13 +60,32 @@ describe("DashboardClient", () => {
 
     await screen.findByText("Employees");
     await user.selectOptions(screen.getByLabelText("Department"), "FIN");
-    await user.selectOptions(screen.getByLabelText("Job title"), "SWE");
+    await user.selectOptions(screen.getByLabelText("Job title"), "FIN_MGR");
     await user.click(screen.getByRole("button", { name: "Apply filters" }));
 
     await waitFor(() => {
       expect(getSalaryAnalytics).toHaveBeenLastCalledWith(
-        expect.objectContaining({ department: "FIN", title: "SWE" }),
+        expect.objectContaining({ department: "FIN", title: "FIN_MGR" }),
       );
     });
   });
 });
+
+function master(
+  category_name: MasterData["category_name"],
+  display_name: string,
+  code: string,
+  parent_category_name: string | null,
+  parent_code: string | null,
+  sort_order: number,
+): MasterData {
+  return {
+    category_name,
+    display_name,
+    code,
+    parent_category_name,
+    parent_code,
+    sort_order,
+    is_active: true,
+  };
+}

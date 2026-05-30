@@ -64,15 +64,25 @@ describe("api client", () => {
   it("calls master data endpoint with category filters", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(
-        JSON.stringify([{ category: "department", description: "Engineering", value: "ENG" }]),
+        JSON.stringify([
+          {
+            category_name: "Department",
+            display_name: "Engineering",
+            code: "ENG",
+            parent_category_name: "Country",
+            parent_code: "AUS",
+            sort_order: 1,
+            is_active: true,
+          },
+        ]),
         { status: 200 },
       ),
     );
 
-    await listMasterData("department");
+    await listMasterData("Department", "AUS");
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://api.example.com/api/v1/master-data?category=department",
+      "https://api.example.com/api/v1/master-data?category=Department&parent_code=AUS",
       expect.any(Object),
     );
   });

@@ -117,9 +117,11 @@ export function EmployeeDetailClient({ employeeId }: { employeeId: string }) {
   }
 
   const isInactive = employee.to_date !== null;
-  const countryOptions = optionsFor(masterData, "country");
-  const departmentOptions = optionsFor(masterData, "department");
-  const titleOptions = optionsFor(masterData, "job_title");
+  const countryOptions = optionsFor(masterData, "Country");
+  const departmentOptions = optionsFor(masterData, "Department", form.country_code ?? "");
+  const titleOptions = optionsFor(masterData, "JobTitle", form.department ?? "");
+  const isDepartmentLocked = isEditing && !form.country_code;
+  const isTitleLocked = isEditing && !form.department;
 
   return (
     <form className="panel" onSubmit={handleSubmit}>
@@ -127,33 +129,50 @@ export function EmployeeDetailClient({ employeeId }: { employeeId: string }) {
         <DetailItem label="Employee ID" value={employee.employee_id} />
         <EditableField
           disabled={!isEditing}
-          label="Full name"
-          onChange={(value) => setForm((current) => ({ ...current, full_name: value }))}
-          value={form.full_name ?? ""}
+          label="First name"
+          onChange={(value) => setForm((current) => ({ ...current, first_name: value }))}
+          value={form.first_name ?? ""}
         />
-        <EditableSelectField
+        <EditableField
           disabled={!isEditing}
-          label="Job title"
-          onChange={(value) => setForm((current) => ({ ...current, title: value }))}
-          options={titleOptions}
-          readValue={labelFor(masterData, "job_title", form.title ?? "")}
-          value={form.title ?? ""}
-        />
-        <EditableSelectField
-          disabled={!isEditing}
-          label="Department"
-          onChange={(value) => setForm((current) => ({ ...current, department: value }))}
-          options={departmentOptions}
-          readValue={labelFor(masterData, "department", form.department ?? "")}
-          value={form.department ?? ""}
+          label="Last name"
+          onChange={(value) => setForm((current) => ({ ...current, last_name: value }))}
+          value={form.last_name ?? ""}
         />
         <EditableSelectField
           disabled={!isEditing}
           label="Country"
-          onChange={(value) => setForm((current) => ({ ...current, country_code: value }))}
+          onChange={(value) =>
+            setForm((current) => ({
+              ...current,
+              country_code: value,
+              department: "",
+              title: "",
+            }))
+          }
           options={countryOptions}
-          readValue={labelFor(masterData, "country", form.country_code ?? "")}
+          readValue={labelFor(masterData, "Country", form.country_code ?? "")}
           value={form.country_code ?? ""}
+        />
+        <EditableSelectField
+          disabled={!isEditing}
+          label="Department"
+          locked={isDepartmentLocked}
+          onChange={(value) => setForm((current) => ({ ...current, department: value, title: "" }))}
+          options={departmentOptions}
+          placeholder={form.country_code ? "Select department" : "Select country first"}
+          readValue={labelFor(masterData, "Department", form.department ?? "")}
+          value={form.department ?? ""}
+        />
+        <EditableSelectField
+          disabled={!isEditing}
+          label="Job title"
+          locked={isTitleLocked}
+          onChange={(value) => setForm((current) => ({ ...current, title: value }))}
+          options={titleOptions}
+          placeholder={form.department ? "Select job title" : "Select department first"}
+          readValue={labelFor(masterData, "JobTitle", form.title ?? "")}
+          value={form.title ?? ""}
         />
         <EditableField
           disabled={!isEditing}
@@ -281,6 +300,8 @@ function EditableSelectField({
   onChange,
   options,
   disabled,
+  locked = false,
+  placeholder,
 }: {
   label: string;
   value: string;
@@ -288,6 +309,8 @@ function EditableSelectField({
   onChange: (value: string) => void;
   options: MasterData[];
   disabled: boolean;
+  locked?: boolean;
+  placeholder?: string;
 }) {
   const id = label.toLowerCase().replaceAll(" ", "-");
   return (
@@ -298,11 +321,32 @@ function EditableSelectField({
       {disabled ? (
         <input disabled id={id} value={readValue} />
       ) : (
-        <select id={id} onChange={(event) => onChange(event.target.value)} value={value}>
-          <option value="">Select {label.toLowerCase()}</option>
+        <select
+          aria-disabled={locked}
+          className={locked ? "locked-control" : undefined}
+          id={id}
+          onChange={(event) => {
+            if (!locked) {
+              onChange(event.target.value);
+            }
+          }}
+          onKeyDown={(event) => {
+            if (locked) {
+              event.preventDefault();
+            }
+          }}
+          onMouseDown={(event) => {
+            if (locked) {
+              event.preventDefault();
+            }
+          }}
+          tabIndex={locked ? -1 : undefined}
+          value={value}
+        >
+          <option value="">{placeholder ?? `Select ${label.toLowerCase()}`}</option>
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.description}
+            <option key={option.code} value={option.code}>
+              {option.display_name}
             </option>
           ))}
         </select>
@@ -332,7 +376,7 @@ function SalaryStructureModal({
           <div>
             <p className="eyebrow">Current salary</p>
             <h3 className="modal-title" id="salary-structure-title">
-              {employee.full_name}
+              {employee.first_name} {employee.last_name}
             </h3>
           </div>
           <button
@@ -368,7 +412,10 @@ function SalaryStructureModal({
           <div className="status-message status-warning">No salary record is available.</div>
         )}
         <div className="modal-actions">
-          <Link className="button button-primary" href={`/employees/${employee.id}/salary`}>
+          <Link
+            className="button button-primary"
+            href={`/employees/employeedetails/salary?id=${employee.id}`}
+          >
             Manage
           </Link>
         </div>
@@ -387,7 +434,9 @@ function hasValidEmploymentDates(form: EmployeeUpdateInput): boolean {
 
 function formFromEmployee(employee: Employee): EmployeeUpdateInput {
   return {
-    full_name: employee.full_name,
+    first_name: employee.first_name,
+    last_name: employee.last_name,
+    gender: employee.gender,
     title: employee.title,
     department: employee.department,
     country_code: employee.country_code,

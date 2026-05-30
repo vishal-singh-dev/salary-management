@@ -9,7 +9,9 @@ import type { EmployeeCreateInput, MasterData } from "@/lib/types";
 
 const initialForm: EmployeeCreateInput = {
   employee_id: "",
-  full_name: "",
+  first_name: "",
+  last_name: "",
+  gender: null,
   title: "",
   department: "",
   country_code: "IN",
@@ -99,7 +101,7 @@ export function EmployeeCreateForm() {
 
     try {
       const employee = await createEmployee(form);
-      router.push(`/employees/${employee.id}`);
+      router.push(`/employees/employeedetails?id=${employee.id}`);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to create employee");
     } finally {
@@ -107,9 +109,12 @@ export function EmployeeCreateForm() {
     }
   }
 
-  const countryOptions = optionsFor(masterData, "country");
-  const departmentOptions = optionsFor(masterData, "department");
-  const titleOptions = optionsFor(masterData, "job_title");
+  const countryOptions = optionsFor(masterData, "Country");
+  const departmentOptions = optionsFor(masterData, "Department", form.country_code);
+  const titleOptions = optionsFor(masterData, "JobTitle", form.department);
+  const currencyOptions = optionsFor(masterData, "Currency");
+  const isDepartmentDisabled = form.country_code === "";
+  const isTitleDisabled = form.department === "";
 
   return (
     <form className="panel" onSubmit={handleSubmit}>
@@ -122,32 +127,61 @@ export function EmployeeCreateForm() {
           value={isLoadingEmployeeId ? "Loading..." : form.employee_id}
         />
         <TextField
-          label="Full name"
-          onChange={(value) => setForm((current) => ({ ...current, full_name: value }))}
+          label="First name"
+          onChange={(value) => setForm((current) => ({ ...current, first_name: value }))}
           required
-          value={form.full_name}
+          value={form.first_name}
+        />
+        <TextField
+          label="Last name"
+          onChange={(value) => setForm((current) => ({ ...current, last_name: value }))}
+          required
+          value={form.last_name}
         />
         <SelectField
-          label="Job title"
-          onChange={(value) => setForm((current) => ({ ...current, title: value }))}
-          options={titleOptions}
-          required
-          value={form.title}
+          label="Gender"
+          onChange={(value) => setForm((current) => ({ ...current, gender: value || null }))}
+          options={[
+            { code: "Female", display_name: "Female" },
+            { code: "Male", display_name: "Male" },
+            { code: "Other", display_name: "Other" },
+          ]}
+          value={form.gender ?? ""}
         />
-        <SelectField
-          label="Department"
-          onChange={(value) => setForm((current) => ({ ...current, department: value }))}
-          options={departmentOptions}
-          required
-          value={form.department}
-        />
+       
         <SelectField
           label="Country"
-          onChange={(value) => setForm((current) => ({ ...current, country_code: value }))}
+          onChange={(value) =>
+            setForm((current) => ({
+              ...current,
+              country_code: value,
+              department: "",
+              title: "",
+            }))
+          }
           options={countryOptions}
           required
           value={form.country_code}
         />
+         <SelectField
+          label="Department"
+          onChange={(value) => setForm((current) => ({ ...current, department: value, title: "" }))}
+          locked={isDepartmentDisabled}
+          options={departmentOptions}
+          placeholder={isDepartmentDisabled ? "Select country first" : "Select department"}
+          required
+          value={form.department}
+        />
+         <SelectField
+          label="Job title"
+          onChange={(value) => setForm((current) => ({ ...current, title: value }))}
+          locked={isTitleDisabled}
+          options={titleOptions}
+          placeholder={isTitleDisabled ? "Select department first" : "Select job title"}
+          required
+          value={form.title}
+        />
+       
         <TextField
           label="Start date"
           onChange={(value) => setForm((current) => ({ ...current, from_date: value }))}
@@ -155,15 +189,15 @@ export function EmployeeCreateForm() {
           type="date"
           value={form.from_date}
         />
-        <TextField
+        <SelectField
           label="Currency"
-          maxLength={3}
           onChange={(value) =>
             setForm((current) => ({
               ...current,
-              initial_salary: { ...current.initial_salary, currency_code: value.toUpperCase() },
+              initial_salary: { ...current.initial_salary, currency_code: value },
             }))
           }
+          options={currencyOptions}
           required
           value={form.initial_salary.currency_code}
         />
@@ -328,28 +362,49 @@ function SelectField({
   value,
   onChange,
   options,
+  placeholder,
   required = false,
+  locked = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: MasterData[];
+  options: Pick<MasterData, "code" | "display_name">[];
+  placeholder?: string;
   required?: boolean;
+  locked?: boolean;
 }) {
   const id = label.toLowerCase().replaceAll(" ", "-");
   return (
     <div className="field">
       <label htmlFor={id}>{label}</label>
       <select
+        aria-disabled={locked}
+        className={locked ? "locked-control" : undefined}
         id={id}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          if (!locked) {
+            onChange(event.target.value);
+          }
+        }}
+        onKeyDown={(event) => {
+          if (locked) {
+            event.preventDefault();
+          }
+        }}
+        onMouseDown={(event) => {
+          if (locked) {
+            event.preventDefault();
+          }
+        }}
         required={required}
+        tabIndex={locked ? -1 : undefined}
         value={value}
       >
-        <option value="">Select {label.toLowerCase()}</option>
+        <option value="">{placeholder ?? `Select ${label.toLowerCase()}`}</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.description}
+          <option key={option.code} value={option.code}>
+            {option.display_name}
           </option>
         ))}
       </select>

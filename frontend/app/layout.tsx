@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { GlobalLoader } from "@/components/GlobalLoader";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </aside>
           <main className="main-content">{children}</main>
         </div>
+        <GlobalLoader />
       </body>
     </html>
   );

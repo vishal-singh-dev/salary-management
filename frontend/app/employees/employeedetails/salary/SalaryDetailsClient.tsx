@@ -58,7 +58,7 @@ export function SalaryDetailsClient({ employeeId }: { employeeId: string }) {
   return (
     <section className="panel">
       <div className="detail-grid salary-summary-grid">
-        <DetailItem label="Employee" value={employee.full_name} />
+        <DetailItem label="Employee" value={`${employee.first_name} ${employee.last_name}`} />
         <DetailItem label="Employee ID" value={employee.employee_id} />
       </div>
       <div className="table-wrap section-gap">
@@ -90,7 +90,7 @@ export function SalaryDetailsClient({ employeeId }: { employeeId: string }) {
         </table>
       </div>
       <div className="actions">
-        <Link className="button button-secondary" href={`/employees/${employee.id}`}>
+        <Link className="button button-secondary" href={`/employees/employeedetails?id=${employee.id}`}>
           Back to employee
         </Link>
         <button className="button button-primary" disabled type="button">

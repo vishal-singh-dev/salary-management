@@ -122,9 +122,9 @@ export function EmployeesClient() {
                 <tr>
                   <th>Employee ID</th>
                   <th>Name</th>
-                  <th>Title</th>
-                  <th>Department</th>
                   <th>Country</th>
+                   <th>Department</th>
+                  <th>Title</th>
                   <th>Current salary</th>
                 </tr>
               </thead>
@@ -132,12 +132,14 @@ export function EmployeesClient() {
                 {employees.items.map((employee) => (
                   <tr key={employee.id}>
                     <td>
-                      <Link href={`/employees/${employee.id}`}>{employee.employee_id}</Link>
+                      <Link href={`/employees/employeedetails?id=${employee.id}`}>
+                        {employee.employee_id}
+                      </Link>
                     </td>
-                    <td>{employee.full_name}</td>
-                    <td>{labelFor(masterData, "job_title", employee.title)}</td>
-                    <td>{labelFor(masterData, "department", employee.department)}</td>
-                    <td>{labelFor(masterData, "country", employee.country_code)}</td>
+                    <td>{`${employee.first_name} ${employee.last_name}`}</td>
+                    <td>{labelFor(masterData, "Country", employee.country_code)}</td>
+                    <td>{labelFor(masterData, "Department", employee.department)}</td>
+                    <td>{labelFor(masterData, "JobTitle", employee.title)}</td>
                     <td>
                       {formatMoney(
                         employee.current_salary?.base_amount ?? null,
