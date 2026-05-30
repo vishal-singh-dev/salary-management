@@ -10,7 +10,7 @@ from app.core.database import SessionLocal
 from app.models import Employee
 from app.seed.exchange_rates import seed_fixed_exchange_rates
 from app.seed.generator import generate_seed_records, load_names
-from app.seed.master_data import seed_fixed_master_data
+from app.seed.master_data import active_employee_master_hierarchy, seed_fixed_master_data
 from app.seed.persistence import current_exchange_rate_ids, persist_seed_data
 
 
@@ -37,12 +37,14 @@ def main() -> None:
             return
 
         exchange_rate_ids = current_exchange_rate_ids(session)
+        hierarchy = active_employee_master_hierarchy(session)
         seed_data = generate_seed_records(
             count=employee_count,
             random_seed=random_seed,
             first_names=load_names(data_directory / "first_names.txt"),
             last_names=load_names(data_directory / "last_names.txt"),
             exchange_rate_ids=exchange_rate_ids,
+            hierarchy=hierarchy,
         )
         persist_seed_data(
             session,

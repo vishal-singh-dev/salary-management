@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.dependencies import get_session
-from app.models import AuditEvent, Employee, EmployeeSalaryRecord, ExchangeRate
+from app.models import AuditEvent, Employee, EmployeeSalaryRecord, ExchangeRate, MasterData
 from app.schemas.employee import (
     EmployeeCreate,
     EmployeeList,
@@ -29,10 +29,19 @@ EMPLOYEE_ID_NUMBER_PATTERN = re.compile(r"(\d+)$")
 
 @router.post("", response_model=EmployeeRead, status_code=status.HTTP_201_CREATED)
 def create_employee(payload: EmployeeCreate, session: SessionDep) -> EmployeeRead:
+    _validate_employee_master_data(
+        session,
+        country_code=payload.country_code,
+        department=payload.department,
+        title=payload.title,
+    )
+    _validate_currency_master_data(session, payload.initial_salary.currency_code)
     exchange_rate = _current_exchange_rate(session, payload.initial_salary.currency_code)
     employee = Employee(
         employee_id=payload.employee_id,
-        full_name=payload.full_name,
+        first_name=payload.first_name,
+        last_name=payload.last_name,
+        gender=payload.gender,
         title=payload.title,
         department=payload.department,
         country_code=payload.country_code,
@@ -137,6 +146,12 @@ def update_employee(
 ) -> EmployeeRead:
     employee = _employee_with_current_salary(session, employee_uuid)
     updates = payload.model_dump(exclude_unset=True)
+    _validate_employee_master_data(
+        session,
+        country_code=updates.get("country_code", employee.country_code),
+        department=updates.get("department", employee.department),
+        title=updates.get("title", employee.title),
+    )
     for field, value in updates.items():
         setattr(employee, field, value)
     session.add(
@@ -188,6 +203,70 @@ def _current_exchange_rate(session: Session, currency_code: str) -> ExchangeRate
     return exchange_rate
 
 
+def _validate_employee_master_data(
+    session: Session,
+    *,
+    country_code: str,
+    department: str,
+    title: str,
+) -> None:
+    if not _active_master_code(session, "Country", country_code):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Country code {country_code} is not configured.",
+        )
+    if not _active_master_code(
+        session,
+        "Department",
+        department,
+        parent_category_name="Country",
+        parent_code=country_code,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Department {department} is not configured for country {country_code}.",
+        )
+    if not _active_master_code(
+        session,
+        "JobTitle",
+        title,
+        parent_category_name="Department",
+        parent_code=department,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Job title {title} is not configured for department {department}.",
+        )
+
+
+def _validate_currency_master_data(session: Session, currency_code: str) -> None:
+    if not _active_master_code(session, "Currency", currency_code):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Currency code {currency_code} is not configured.",
+        )
+
+
+def _active_master_code(
+    session: Session,
+    category_name: str,
+    code: str,
+    *,
+    parent_category_name: str | None = None,
+    parent_code: str | None = None,
+) -> bool:
+    filters = [
+        MasterData.category_name == category_name,
+        MasterData.code == code,
+        MasterData.is_active.is_(True),
+    ]
+    if parent_category_name is not None:
+        filters.append(MasterData.parent_category_name == parent_category_name)
+    if parent_code is not None:
+        filters.append(MasterData.parent_code == parent_code)
+    return session.scalar(select(MasterData.id).where(*filters).limit(1)) is not None
+
+
 def _employee_with_current_salary(session: Session, employee_uuid: uuid.UUID) -> Employee:
     employee = session.scalar(
         select(Employee)
@@ -208,8 +287,10 @@ def _to_employee_read(employee: Employee) -> EmployeeRead:
         {
             "id": employee.id,
             "employee_id": employee.employee_id,
-            "full_name": employee.full_name,
+            "first_name": employee.first_name,
+            "last_name": employee.last_name,
             "title": employee.title,
+            "gender": employee.gender,
             "department": employee.department,
             "country_code": employee.country_code,
             "from_date": employee.from_date,

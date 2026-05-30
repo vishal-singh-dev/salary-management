@@ -168,7 +168,9 @@ def _add_employee_salary(
     employee = Employee(
         id=uuid.uuid4(),
         employee_id=employee_id,
-        full_name=f"{employee_id} Test",
+        first_name=employee_id,
+        last_name="Test",
+        gender=None,
         title=title,
         department=department,
         country_code=country_code,

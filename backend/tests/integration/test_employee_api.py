@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_session
 from app.main import create_app
 from app.models import ExchangeRate
+from app.seed.master_data import seed_fixed_master_data
 
 pytestmark = pytest.mark.integration
 
@@ -22,6 +23,7 @@ def client(database_session: Session) -> Generator[TestClient, None, None]:
 
     app = create_app()
     app.dependency_overrides[get_session] = override_session
+    seed_fixed_master_data(database_session)
     database_session.add(
         ExchangeRate(
             id=uuid.uuid4(),
@@ -41,9 +43,11 @@ def client(database_session: Session) -> Generator[TestClient, None, None]:
 def employee_payload(employee_id: str = "EMP-000001") -> dict[str, object]:
     return {
         "employee_id": employee_id,
-        "full_name": "Asha Patel",
-        "title": "HRBP",
-        "department": "HR",
+        "first_name": "Asha",
+        "last_name": "Patel",
+        "gender": "Female",
+        "title": "US_PE",
+        "department": "US_ENG",
         "country_code": "US",
         "from_date": "2026-01-01",
         "initial_salary": {
@@ -107,14 +111,15 @@ def test_employee_get_update_delete_api(client: TestClient) -> None:
 
     detail = client.get(f"/api/v1/employees/{employee_uuid}")
     assert detail.status_code == 200
-    assert detail.json()["full_name"] == "Asha Patel"
+    assert detail.json()["first_name"] == "Asha"
+    assert detail.json()["last_name"] == "Patel"
 
     updated = client.patch(
         f"/api/v1/employees/{employee_uuid}",
-        json={"title": "SR_SWE"},
+        json={"title": "US_EM"},
     )
     assert updated.status_code == 200
-    assert updated.json()["title"] == "SR_SWE"
+    assert updated.json()["title"] == "US_EM"
 
     deleted = client.delete(f"/api/v1/employees/{employee_uuid}")
     assert deleted.status_code == 204

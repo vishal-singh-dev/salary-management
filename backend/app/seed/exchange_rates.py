@@ -29,6 +29,7 @@ def fixed_exchange_rates() -> list[FixedExchangeRate]:
     effective_from = date(2026, 1, 1)
     rates = {
         "INR": Decimal("0.01200000"),
+        "CNY": Decimal("0.14000000"),
         "USD": Decimal("1.00000000"),
         "GBP": Decimal("1.26000000"),
         "EUR": Decimal("1.08000000"),
@@ -59,4 +60,3 @@ def seed_fixed_exchange_rates(session: Session) -> int:
         )
     )
     return len(values)
-

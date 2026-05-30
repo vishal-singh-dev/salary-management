@@ -6,6 +6,7 @@ from pathlib import Path
 
 from app.core.database import SessionLocal
 from app.seed.generator import generate_seed_records, load_names
+from app.seed.master_data import active_employee_master_hierarchy, seed_fixed_master_data
 from app.seed.persistence import (
     SeedPreconditionError,
     assert_empty_employee_dataset,
@@ -30,14 +31,17 @@ def main() -> None:
     started_at = time.perf_counter()
 
     with SessionLocal.begin() as session:
+        seed_fixed_master_data(session)
         assert_empty_employee_dataset(session)
         exchange_rate_ids = current_exchange_rate_ids(session)
+        hierarchy = active_employee_master_hierarchy(session)
         seed_data = generate_seed_records(
             count=args.count,
             random_seed=args.random_seed,
             first_names=load_names(args.first_names_file),
             last_names=load_names(args.last_names_file),
             exchange_rate_ids=exchange_rate_ids,
+            hierarchy=hierarchy,
         )
         persist_seed_data(
             session,

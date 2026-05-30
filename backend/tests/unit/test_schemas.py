@@ -14,9 +14,11 @@ def test_employee_create_schema() -> None:
     # Intent: employee creation accepts profile data plus the initial salary structure.
     employee = EmployeeCreate(
         employee_id="EMP-000001",
-        full_name="Asha Patel",
-        title="HR Manager",
-        department="Human Resources",
+        first_name="Asha",
+        last_name="Patel",
+        gender="Female",
+        title="HRF",
+        department="HR",
         country_code="IN",
         from_date=date(2024, 1, 1),
         initial_salary=SalaryCreate(
@@ -54,7 +56,7 @@ def test_audit_event_schema() -> None:
         employee_id=None,
         initiated_by="hr_ui",
         summary="Employee created.",
-        details={"changed_fields": ["full_name"]},
+        details={"changed_fields": ["first_name"]},
     )
 
     assert event.event_type == "employee.created"

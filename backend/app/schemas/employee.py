@@ -8,10 +8,12 @@ from app.schemas.salary_record import SalaryCreate, SalaryRead
 
 class EmployeeBase(BaseModel):
     employee_id: str = Field(min_length=1, max_length=30)
-    full_name: str = Field(min_length=1, max_length=200)
+    first_name: str = Field(min_length=1, max_length=200)
+    last_name: str = Field(min_length=1, max_length=200)
+    gender: str | None = Field(default=None, min_length=1, max_length=10)
     title: str = Field(min_length=1, max_length=200)
     department: str = Field(min_length=1, max_length=120)
-    country_code: str = Field(min_length=2, max_length=2)
+    country_code: str = Field(min_length=2, max_length=3)
     from_date: date
     to_date: date | None = None
 
@@ -21,10 +23,12 @@ class EmployeeCreate(EmployeeBase):
 
 
 class EmployeeUpdate(BaseModel):
-    full_name: str | None = Field(default=None, min_length=1, max_length=200)
+    first_name: str | None = Field(default=None, min_length=1, max_length=200)
+    last_name: str | None = Field(default=None, min_length=1, max_length=200)
+    gender: str | None = Field(default=None, min_length=1, max_length=10)
     title: str | None = Field(default=None, min_length=1, max_length=200)
     department: str | None = Field(default=None, min_length=1, max_length=120)
-    country_code: str | None = Field(default=None, min_length=2, max_length=2)
+    country_code: str | None = Field(default=None, min_length=2, max_length=3)
     from_date: date | None = None
     to_date: date | None = None
 

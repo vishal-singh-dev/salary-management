@@ -4,8 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from app.seed.generator import generate_seed_records, load_names, required_currencies
-from app.seed.master_data import DEPARTMENT_VALUES, JOB_TITLE_VALUES
+from app.seed.generator import (
+    COUNTRY_DEPARTMENTS,
+    DEPARTMENT_TITLES,
+    generate_seed_records,
+    load_names,
+    required_currencies,
+)
 
 
 def exchange_rate_ids() -> dict[str, uuid.UUID]:
@@ -39,12 +44,18 @@ def test_seed_data_generation() -> None:
     assert {salary.employee_id for salary in first_run.salaries} == {
         employee.id for employee in first_run.employees
     }
-    assert all(employee.full_name.split()[0] in first_names for employee in first_run.employees)
-    assert all(employee.full_name.split()[1] in last_names for employee in first_run.employees)
     assert all(
-        employee.department in DEPARTMENT_VALUES.values() for employee in first_run.employees
+        employee.first_name in first_names and employee.last_name in last_names
+        for employee in first_run.employees
     )
-    assert all(employee.title in JOB_TITLE_VALUES.values() for employee in first_run.employees)
+    assert all(
+        employee.department in COUNTRY_DEPARTMENTS[employee.country_code]
+        for employee in first_run.employees
+    )
+    assert all(
+        employee.title in DEPARTMENT_TITLES[employee.department]
+        for employee in first_run.employees
+    )
     assert all(salary.base_amount > Decimal("0") for salary in first_run.salaries)
 
 

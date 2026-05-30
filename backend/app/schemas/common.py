@@ -9,6 +9,10 @@ class PaginationMeta(BaseModel):
 
 
 class MasterData(BaseModel):
-    category: str
-    description: str
-    value: str
+    category_name: str
+    display_name: str
+    code: str
+    parent_category_name: str | None = None
+    parent_code: str | None = None
+    sort_order: int | None = None
+    is_active: bool

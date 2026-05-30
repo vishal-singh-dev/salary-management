@@ -27,7 +27,9 @@ class CountryProfile:
 class SeedEmployeeRecord:
     id: uuid.UUID
     employee_id: str
-    full_name: str
+    first_name: str
+    last_name: str
+    gender: str | None
     title: str
     department: str
     country_code: str
@@ -57,32 +59,50 @@ class GeneratedSeedData:
     currencies_used: set[str]
 
 
+@dataclass(frozen=True)
+class EmployeeMasterHierarchy:
+    country_departments: dict[str, tuple[str, ...]]
+    department_titles: dict[str, tuple[str, ...]]
+
+
 COUNTRIES = (
     CountryProfile("IN", "INR", 500_000, 6_000_000, Decimal("20"), Decimal("12"), Decimal("4.81")),
+    CountryProfile("CHN", "CNY", 90_000, 1_400_000, Decimal("0"), Decimal("5"), Decimal("0")),
+    CountryProfile("AUS", "AUD", 65_000, 220_000, Decimal("0"), Decimal("4"), Decimal("0")),
     CountryProfile("US", "USD", 55_000, 240_000, Decimal("0"), Decimal("4"), Decimal("0")),
     CountryProfile("GB", "GBP", 38_000, 150_000, Decimal("0"), Decimal("5"), Decimal("0")),
     CountryProfile("DE", "EUR", 45_000, 170_000, Decimal("0"), Decimal("4"), Decimal("0")),
     CountryProfile("CA", "CAD", 55_000, 190_000, Decimal("0"), Decimal("4"), Decimal("0")),
-    CountryProfile("AU", "AUD", 65_000, 220_000, Decimal("0"), Decimal("4"), Decimal("0")),
 )
-TITLES = (
-    "SWE",
-    "SR_SWE",
-    "PM",
-    "DA",
-    "HRBP",
-    "FIN_MGR",
-    "SALES_EXEC",
-    "SUPPORT_SPEC",
-)
-DEPARTMENTS = (
-    "ENG",
-    "PROD",
-    "DATA",
-    "HR",
-    "FIN",
-    "SALES",
-    "SUPPORT",
+COUNTRY_DEPARTMENTS = {
+    "IN": ("HR", "FIN"),
+    "CHN": ("SP", "LAB"),
+    "AUS": ("ENG", "PROD"),
+    "US": ("US_ENG", "US_SALES"),
+    "GB": ("GB_OPS", "GB_FIN"),
+    "DE": ("DE_ENG", "DE_DATA"),
+    "CA": ("CA_SUPPORT", "CA_HR"),
+}
+DEPARTMENT_TITLES = {
+    "HR": ("HRF", "HRO"),
+    "FIN": ("FIN_MGR", "PAYROLL"),
+    "SP": ("CS", "GS"),
+    "LAB": ("LAB_SUP", "LAB_COORD"),
+    "ENG": ("SWE", "SR_SWE"),
+    "PROD": ("PM", "PA"),
+    "US_ENG": ("US_PE", "US_EM"),
+    "US_SALES": ("US_SE", "US_AM"),
+    "GB_OPS": ("GB_OM", "GB_PA"),
+    "GB_FIN": ("GB_FA", "GB_CTRL"),
+    "DE_ENG": ("DE_SE", "DE_AE"),
+    "DE_DATA": ("DE_DA", "DE_DE"),
+    "CA_SUPPORT": ("CA_CSS", "CA_SL"),
+    "CA_HR": ("CA_HRBP", "CA_TP"),
+}
+GENDERS = ("Female", "Male", "Other")
+DEFAULT_EMPLOYEE_MASTER_HIERARCHY = EmployeeMasterHierarchy(
+    country_departments=COUNTRY_DEPARTMENTS,
+    department_titles=DEPARTMENT_TITLES,
 )
 
 
@@ -109,11 +129,13 @@ def generate_seed_records(
     first_names: list[str],
     last_names: list[str],
     exchange_rate_ids: dict[str, uuid.UUID],
+    hierarchy: EmployeeMasterHierarchy | None = None,
 ) -> GeneratedSeedData:
     if count <= 0:
         raise ValueError("Employee count must be greater than zero.")
     if not first_names or not last_names:
         raise ValueError("First and last names must not be empty.")
+    hierarchy = hierarchy or DEFAULT_EMPLOYEE_MASTER_HIERARCHY
     missing_rates = sorted(required_currencies() - exchange_rate_ids.keys())
     if missing_rates:
         raise ValueError(
@@ -129,7 +151,10 @@ def generate_seed_records(
     for sequence in range(1, count + 1):
         business_id = f"SEED-{sequence:06d}"
         employee_uuid = uuid.uuid5(EMPLOYEE_NAMESPACE, business_id)
-        country = rng.choice(COUNTRIES)
+        country = rng.choice(_countries_with_job_titles(hierarchy))
+        department = rng.choice(_departments_with_job_titles(hierarchy, country.code))
+        first_name = rng.choice(first_names)
+        last_name = rng.choice(last_names)
         currencies_used.add(country.currency_code)
         from_date = employment_start + timedelta(days=rng.randrange(0, 4018))
         base_amount = Decimal(
@@ -140,9 +165,11 @@ def generate_seed_records(
         employee = SeedEmployeeRecord(
             id=employee_uuid,
             employee_id=business_id,
-            full_name=f"{rng.choice(first_names)} {rng.choice(last_names)}",
-            title=rng.choice(TITLES),
-            department=rng.choice(DEPARTMENTS),
+            first_name=first_name,
+            last_name=last_name,
+            gender=rng.choice(GENDERS),
+            title=rng.choice(hierarchy.department_titles[department]),
+            department=department,
             country_code=country.code,
             from_date=from_date,
         )
@@ -168,3 +195,33 @@ def generate_seed_records(
 
 def _percentage_amount(amount: Decimal, percent: Decimal) -> Decimal:
     return (amount * percent / Decimal("100")).quantize(MONEY_QUANTUM)
+
+
+def _countries_with_job_titles(hierarchy: EmployeeMasterHierarchy) -> tuple[CountryProfile, ...]:
+    countries = tuple(
+        country
+        for country in COUNTRIES
+        if any(
+            department in hierarchy.department_titles
+            for department in hierarchy.country_departments.get(country.code, ())
+        )
+    )
+    if not countries:
+        raise ValueError(
+            "Master data does not contain any country with departments and job titles."
+        )
+    return countries
+
+
+def _departments_with_job_titles(
+    hierarchy: EmployeeMasterHierarchy,
+    country_code: str,
+) -> tuple[str, ...]:
+    departments = tuple(
+        department
+        for department in hierarchy.country_departments.get(country_code, ())
+        if department in hierarchy.department_titles
+    )
+    if not departments:
+        raise ValueError(f"Master data does not contain job-title departments for {country_code}.")
+    return departments

@@ -25,10 +25,12 @@ class Employee(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
 
     employee_id: Mapped[str] = mapped_column(String(30), nullable=False, unique=True, index=True)
-    full_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(200), nullable=False)
+    gender: Mapped[str | None] = mapped_column(String(10), nullable=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     department: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
-    country_code: Mapped[str] = mapped_column(String(2), nullable=False, index=True)
+    country_code: Mapped[str] = mapped_column(String(3), nullable=False, index=True)
     from_date: Mapped[date] = mapped_column(Date, nullable=False)
     to_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
