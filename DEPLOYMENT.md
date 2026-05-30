@@ -13,7 +13,7 @@ The frontend is a Next.js app deployed on Vercel.
 The browser loads the app from an HTTPS URL such as:
 
 ```text
-https://salary-management.vercel.app
+https://salary-management-ashy.vercel.app/
 ```
 
 Set this Vercel environment variable:
@@ -31,7 +31,13 @@ The backend is a FastAPI app packaged as a Docker image and running on an AWS EC
 The backend container exposes:
 
 ```text
-http://<ec2-public-ip>:8000
+http://ec2-15-206-160-184.ap-south-1.compute.amazonaws.com:8000
+```
+
+Backend API docs are available at:
+
+```text
+http://ec2-15-206-160-184.ap-south-1.compute.amazonaws.com:8000/docs
 ```
 
 It uses environment variables such as:
@@ -90,8 +96,8 @@ Start Command: npm start
 Render environment variables:
 
 ```text
-BACKEND_BASE_URL=http://<ec2-public-ip>:8000
-FRONTEND_ORIGIN=https://<vercel-frontend>.vercel.app
+BACKEND_BASE_URL=http://ec2-15-206-160-184.ap-south-1.compute.amazonaws.com:8000
+FRONTEND_ORIGIN=https://salary-management-ashy.vercel.app
 NODE_VERSION=22
 ```
 
@@ -103,16 +109,16 @@ directly. This is called mixed-content blocking.
 This fails in the browser:
 
 ```text
-https://<vercel-frontend>.vercel.app
--> http://<ec2-public-ip>:8000
+https://salary-management-ashy.vercel.app
+-> http://ec2-15-206-160-184.ap-south-1.compute.amazonaws.com:8000
 ```
 
 The Render proxy fixes that by keeping the browser request HTTPS:
 
 ```text
-https://<vercel-frontend>.vercel.app
+https://salary-management-ashy.vercel.app
 -> https://<render-proxy>.onrender.com
--> http://<ec2-public-ip>:8000
+-> http://ec2-15-206-160-184.ap-south-1.compute.amazonaws.com:8000
 ```
 
 This is an MVP bridge. The cleaner long-term option is to put HTTPS directly on the backend with a
@@ -129,7 +135,7 @@ curl http://localhost:8000/health
 Backend from public internet:
 
 ```bash
-curl http://<ec2-public-ip>:8000/health
+curl http://ec2-15-206-160-184.ap-south-1.compute.amazonaws.com:8000/health
 ```
 
 Proxy:
@@ -142,7 +148,7 @@ curl "https://<render-proxy>.onrender.com/api/v1/master-data?category=Currency"
 Frontend:
 
 ```text
-https://<vercel-frontend>.vercel.app
+https://salary-management-ashy.vercel.app/
 ```
 
 The frontend should load employees, dashboard data, and master-data dropdowns without mixed-content
