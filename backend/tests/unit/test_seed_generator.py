@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from app.seed.generator import generate_seed_records, load_names, required_currencies
+from app.seed.master_data import DEPARTMENT_VALUES, JOB_TITLE_VALUES
 
 
 def exchange_rate_ids() -> dict[str, uuid.UUID]:
@@ -40,6 +41,10 @@ def test_seed_data_generation() -> None:
     }
     assert all(employee.full_name.split()[0] in first_names for employee in first_run.employees)
     assert all(employee.full_name.split()[1] in last_names for employee in first_run.employees)
+    assert all(
+        employee.department in DEPARTMENT_VALUES.values() for employee in first_run.employees
+    )
+    assert all(employee.title in JOB_TITLE_VALUES.values() for employee in first_run.employees)
     assert all(salary.base_amount > Decimal("0") for salary in first_run.salaries)
 
 
@@ -47,4 +52,3 @@ def test_fx_rates_prerequisites() -> None:
     # Intent: seed generation requires a complete set of current exchange rates.
     with pytest.raises(ValueError, match="Missing current exchange rates"):
         generate_seed_records(1, 2026, ["Asha"], ["Patel"], {"INR": uuid.uuid4()})
-

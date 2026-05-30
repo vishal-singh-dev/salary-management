@@ -1,9 +1,11 @@
-from app.seed.generator import COUNTRIES, DEPARTMENTS, TITLES
+from app.seed.generator import COUNTRIES
 from app.seed.master_data import (
     COUNTRY_CATEGORY,
     DEPARTMENT_CATEGORY,
+    DEPARTMENT_DESCRIPTIONS,
     DEPARTMENT_VALUES,
     JOB_TITLE_CATEGORY,
+    JOB_TITLE_DESCRIPTIONS,
     JOB_TITLE_VALUES,
     fixed_master_data,
 )
@@ -13,21 +15,23 @@ def test_fixed_master_data_contains_filter_values() -> None:
     # Intent: ensure dashboard filter masters are generated from the same values used by seeding.
     records = fixed_master_data()
 
-    assert len(records) == len(COUNTRIES) + len(DEPARTMENTS) + len(TITLES)
+    assert len(records) == (
+        len(COUNTRIES) + len(DEPARTMENT_DESCRIPTIONS) + len(JOB_TITLE_DESCRIPTIONS)
+    )
     assert {record.value for record in records if record.category == COUNTRY_CATEGORY} == {
         country.code for country in COUNTRIES
     }
     department_descriptions = {
         record.description for record in records if record.category == DEPARTMENT_CATEGORY
     }
-    assert department_descriptions == set(DEPARTMENTS)
+    assert department_descriptions == set(DEPARTMENT_DESCRIPTIONS)
     assert {record.value for record in records if record.category == DEPARTMENT_CATEGORY} == set(
         DEPARTMENT_VALUES.values()
     )
     title_descriptions = {
         record.description for record in records if record.category == JOB_TITLE_CATEGORY
     }
-    assert title_descriptions == set(TITLES)
+    assert title_descriptions == set(JOB_TITLE_DESCRIPTIONS)
     assert {record.value for record in records if record.category == JOB_TITLE_CATEGORY} == set(
         JOB_TITLE_VALUES.values()
     )

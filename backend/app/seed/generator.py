@@ -66,23 +66,23 @@ COUNTRIES = (
     CountryProfile("AU", "AUD", 65_000, 220_000, Decimal("0"), Decimal("4"), Decimal("0")),
 )
 TITLES = (
-    "Software Engineer",
-    "Senior Software Engineer",
-    "Product Manager",
-    "Data Analyst",
-    "HR Business Partner",
-    "Finance Manager",
-    "Sales Executive",
-    "Support Specialist",
+    "SWE",
+    "SR_SWE",
+    "PM",
+    "DA",
+    "HRBP",
+    "FIN_MGR",
+    "SALES_EXEC",
+    "SUPPORT_SPEC",
 )
 DEPARTMENTS = (
-    "Engineering",
-    "Product",
-    "Data",
-    "Human Resources",
-    "Finance",
-    "Sales",
-    "Support",
+    "ENG",
+    "PROD",
+    "DATA",
+    "HR",
+    "FIN",
+    "SALES",
+    "SUPPORT",
 )
 
 

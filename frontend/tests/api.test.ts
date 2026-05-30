@@ -12,13 +12,13 @@ import {
 
 describe("api client", () => {
   beforeEach(() => {
-    process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.com";
+    process.env.PUBLIC_API_BASE_URL = "https://api.example.com";
     global.fetch = vi.fn();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    delete process.env.NEXT_PUBLIC_API_BASE_URL;
+    delete process.env.PUBLIC_API_BASE_URL;
   });
 
   it("builds backend urls with query parameters", () => {

@@ -7,7 +7,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.models import MasterData
-from app.seed.generator import COUNTRIES, DEPARTMENTS, TITLES
+from app.seed.generator import COUNTRIES
 
 MASTER_DATA_NAMESPACE = uuid.UUID("f4a42ace-64f7-4ef0-9d26-ec77d3cf32b6")
 
@@ -33,6 +33,7 @@ DEPARTMENT_VALUES = {
     "Sales": "SALES",
     "Support": "SUPPORT",
 }
+DEPARTMENT_DESCRIPTIONS = tuple(DEPARTMENT_VALUES)
 
 JOB_TITLE_VALUES = {
     "Software Engineer": "SWE",
@@ -44,6 +45,7 @@ JOB_TITLE_VALUES = {
     "Sales Executive": "SALES_EXEC",
     "Support Specialist": "SUPPORT_SPEC",
 }
+JOB_TITLE_DESCRIPTIONS = tuple(JOB_TITLE_VALUES)
 
 
 @dataclass(frozen=True)
@@ -68,13 +70,16 @@ def fixed_master_data() -> list[FixedMasterData]:
     records.extend(
         _records_from_pairs(
             category=DEPARTMENT_CATEGORY,
-            pairs=[(department, DEPARTMENT_VALUES[department]) for department in DEPARTMENTS],
+            pairs=[
+                (department, DEPARTMENT_VALUES[department])
+                for department in DEPARTMENT_DESCRIPTIONS
+            ],
         )
     )
     records.extend(
         _records_from_pairs(
             category=JOB_TITLE_CATEGORY,
-            pairs=[(title, JOB_TITLE_VALUES[title]) for title in TITLES],
+            pairs=[(title, JOB_TITLE_VALUES[title]) for title in JOB_TITLE_DESCRIPTIONS],
         )
     )
     return records

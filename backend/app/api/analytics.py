@@ -10,13 +10,10 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_session
 from app.models import Employee, EmployeeSalaryRecord, ExchangeRate
 from app.schemas.analytics import SalaryAnalytics, SalaryAnalyticsFilters
-from app.seed.master_data import DEPARTMENT_VALUES, JOB_TITLE_VALUES
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 SessionDep = Annotated[Session, Depends(get_session)]
 CurrencyBasis = Literal["local", "usd"]
-DEPARTMENT_FILTER_VALUES = {value: description for description, value in DEPARTMENT_VALUES.items()}
-JOB_TITLE_FILTER_VALUES = {value: description for description, value in JOB_TITLE_VALUES.items()}
 
 
 @router.get("/salaries", response_model=SalaryAnalytics)
@@ -49,9 +46,9 @@ def get_salary_analytics(
     if country_code:
         filters.append(Employee.country_code == country_code)
     if department:
-        filters.append(Employee.department == DEPARTMENT_FILTER_VALUES.get(department, department))
+        filters.append(Employee.department == department)
     if title:
-        filters.append(Employee.title == JOB_TITLE_FILTER_VALUES.get(title, title))
+        filters.append(Employee.title == title)
 
     metrics = session.execute(
         select(

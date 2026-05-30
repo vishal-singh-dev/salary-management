@@ -42,8 +42,8 @@ def employee_payload(employee_id: str = "EMP-000001") -> dict[str, object]:
     return {
         "employee_id": employee_id,
         "full_name": "Asha Patel",
-        "title": "HR Manager",
-        "department": "Human Resources",
+        "title": "HRBP",
+        "department": "HR",
         "country_code": "US",
         "from_date": "2026-01-01",
         "initial_salary": {
@@ -111,10 +111,10 @@ def test_employee_get_update_delete_api(client: TestClient) -> None:
 
     updated = client.patch(
         f"/api/v1/employees/{employee_uuid}",
-        json={"title": "Senior HR Manager"},
+        json={"title": "SR_SWE"},
     )
     assert updated.status_code == 200
-    assert updated.json()["title"] == "Senior HR Manager"
+    assert updated.json()["title"] == "SR_SWE"
 
     deleted = client.delete(f"/api/v1/employees/{employee_uuid}")
     assert deleted.status_code == 204

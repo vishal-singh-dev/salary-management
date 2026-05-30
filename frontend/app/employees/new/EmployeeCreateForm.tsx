@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
-import { createEmployee, getNextEmployeeId } from "@/lib/api";
-import type { EmployeeCreateInput } from "@/lib/types";
+import { createEmployee, getNextEmployeeId, listMasterData } from "@/lib/api";
+import { fallbackMasterData, optionsFor } from "@/lib/masterData";
+import type { EmployeeCreateInput, MasterData } from "@/lib/types";
 
 const initialForm: EmployeeCreateInput = {
   employee_id: "",
@@ -27,6 +28,7 @@ const initialForm: EmployeeCreateInput = {
 export function EmployeeCreateForm() {
   const router = useRouter();
   const [form, setForm] = useState<EmployeeCreateInput>(initialForm);
+  const [masterData, setMasterData] = useState<MasterData[]>(fallbackMasterData);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingEmployeeId, setIsLoadingEmployeeId] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -62,7 +64,21 @@ export function EmployeeCreateForm() {
       }
     }
 
+    async function loadMasterData() {
+      try {
+        const result = await listMasterData();
+        if (isCurrent) {
+          setMasterData(result);
+        }
+      } catch {
+        if (isCurrent) {
+          setMasterData(fallbackMasterData);
+        }
+      }
+    }
+
     loadEmployeeId();
+    loadMasterData();
 
     return () => {
       isCurrent = false;
@@ -72,6 +88,13 @@ export function EmployeeCreateForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    const salaryValidationError = validateSalaryAmounts(form.initial_salary);
+    if (salaryValidationError) {
+      setError(salaryValidationError);
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -83,6 +106,10 @@ export function EmployeeCreateForm() {
       setIsSaving(false);
     }
   }
+
+  const countryOptions = optionsFor(masterData, "country");
+  const departmentOptions = optionsFor(masterData, "department");
+  const titleOptions = optionsFor(masterData, "job_title");
 
   return (
     <form className="panel" onSubmit={handleSubmit}>
@@ -100,24 +127,24 @@ export function EmployeeCreateForm() {
           required
           value={form.full_name}
         />
-        <TextField
+        <SelectField
           label="Job title"
           onChange={(value) => setForm((current) => ({ ...current, title: value }))}
+          options={titleOptions}
           required
           value={form.title}
         />
-        <TextField
+        <SelectField
           label="Department"
           onChange={(value) => setForm((current) => ({ ...current, department: value }))}
+          options={departmentOptions}
           required
           value={form.department}
         />
-        <TextField
-          label="Country code"
-          maxLength={2}
-          onChange={(value) =>
-            setForm((current) => ({ ...current, country_code: value.toUpperCase() }))
-          }
+        <SelectField
+          label="Country"
+          onChange={(value) => setForm((current) => ({ ...current, country_code: value }))}
+          options={countryOptions}
           required
           value={form.country_code}
         />
@@ -149,6 +176,8 @@ export function EmployeeCreateForm() {
             }))
           }
           required
+          min="0.01"
+          step="0.01"
           type="number"
           value={form.initial_salary.base_amount}
         />
@@ -161,7 +190,48 @@ export function EmployeeCreateForm() {
             }))
           }
           type="number"
+          min="0"
+          step="0.01"
           value={form.initial_salary.variable_amount}
+        />
+        <TextField
+          label="HRA allowance"
+          onChange={(value) =>
+            setForm((current) => ({
+              ...current,
+              initial_salary: { ...current.initial_salary, hra_allowance_amount: value },
+            }))
+          }
+          min="0"
+          step="0.01"
+          type="number"
+          value={form.initial_salary.hra_allowance_amount}
+        />
+        <TextField
+          label="PF amount"
+          onChange={(value) =>
+            setForm((current) => ({
+              ...current,
+              initial_salary: { ...current.initial_salary, pf_amount: value },
+            }))
+          }
+          min="0"
+          step="0.01"
+          type="number"
+          value={form.initial_salary.pf_amount}
+        />
+        <TextField
+          label="Gratuity amount"
+          onChange={(value) =>
+            setForm((current) => ({
+              ...current,
+              initial_salary: { ...current.initial_salary, gratuity_amount: value },
+            }))
+          }
+          min="0"
+          step="0.01"
+          type="number"
+          value={form.initial_salary.gratuity_amount}
         />
         <TextField
           label="Salary effective from"
@@ -198,6 +268,8 @@ function TextField({
   required = false,
   maxLength,
   disabled = false,
+  min,
+  step,
 }: {
   label: string;
   value: string;
@@ -206,6 +278,8 @@ function TextField({
   required?: boolean;
   maxLength?: number;
   disabled?: boolean;
+  min?: string;
+  step?: string;
 }) {
   const id = label.toLowerCase().replaceAll(" ", "-");
   return (
@@ -214,12 +288,71 @@ function TextField({
       <input
         id={id}
         disabled={disabled}
+        min={min}
         maxLength={maxLength}
         onChange={(event) => onChange(event.target.value)}
         required={required}
+        step={step}
         type={type}
         value={value}
       />
+    </div>
+  );
+}
+
+function validateSalaryAmounts(salary: EmployeeCreateInput["initial_salary"]): string | null {
+  const baseAmount = Number(salary.base_amount);
+  if (!Number.isFinite(baseAmount) || baseAmount <= 0) {
+    return "Base salary must be greater than 0.";
+  }
+
+  const salaryFields = [
+    ["Variable pay", salary.variable_amount],
+    ["HRA allowance", salary.hra_allowance_amount],
+    ["PF amount", salary.pf_amount],
+    ["Gratuity amount", salary.gratuity_amount],
+  ] as const;
+
+  for (const [label, value] of salaryFields) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return `${label} must be 0 or greater.`;
+    }
+  }
+
+  return null;
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: MasterData[];
+  required?: boolean;
+}) {
+  const id = label.toLowerCase().replaceAll(" ", "-");
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <select
+        id={id}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        value={value}
+      >
+        <option value="">Select {label.toLowerCase()}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.description}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

@@ -387,7 +387,7 @@ Copy-Item .env.example .env.local
 Set the backend URL in `frontend/.env.local`:
 
 ```dotenv
-NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 ```
 
 Start the frontend:

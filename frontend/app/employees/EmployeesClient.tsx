@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { listEmployees } from "@/lib/api";
+import { listEmployees, listMasterData } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
-import type { EmployeeListResponse } from "@/lib/types";
+import { fallbackMasterData, labelFor } from "@/lib/masterData";
+import type { EmployeeListResponse, MasterData } from "@/lib/types";
 
 const pageSize = 25;
 
@@ -13,6 +14,7 @@ export function EmployeesClient() {
   const [offset, setOffset] = useState(0);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [employees, setEmployees] = useState<EmployeeListResponse | null>(null);
+  const [masterData, setMasterData] = useState<MasterData[]>(fallbackMasterData);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +46,29 @@ export function EmployeesClient() {
       isCurrent = false;
     };
   }, [offset, includeInactive]);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadMasterData() {
+      try {
+        const result = await listMasterData();
+        if (isCurrent) {
+          setMasterData(result);
+        }
+      } catch {
+        if (isCurrent) {
+          setMasterData(fallbackMasterData);
+        }
+      }
+    }
+
+    loadMasterData();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   const canMoveBack = offset > 0;
   const canMoveForward = employees ? offset + employees.limit < employees.total : false;
@@ -110,9 +135,9 @@ export function EmployeesClient() {
                       <Link href={`/employees/${employee.id}`}>{employee.employee_id}</Link>
                     </td>
                     <td>{employee.full_name}</td>
-                    <td>{employee.title}</td>
-                    <td>{employee.department}</td>
-                    <td>{employee.country_code}</td>
+                    <td>{labelFor(masterData, "job_title", employee.title)}</td>
+                    <td>{labelFor(masterData, "department", employee.department)}</td>
+                    <td>{labelFor(masterData, "country", employee.country_code)}</td>
                     <td>
                       {formatMoney(
                         employee.current_salary?.base_amount ?? null,

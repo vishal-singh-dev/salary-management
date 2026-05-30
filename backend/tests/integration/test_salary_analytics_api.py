@@ -118,8 +118,8 @@ def _add_salary_fixture_data(session: Session) -> None:
         session,
         "EMP-001",
         "IN",
-        "Engineering",
-        "Software Engineer",
+        "ENG",
+        "SWE",
         "INR",
         1_000_000,
         inr_rate.id,
@@ -128,24 +128,24 @@ def _add_salary_fixture_data(session: Session) -> None:
         session,
         "EMP-002",
         "IN",
-        "Engineering",
-        "Software Engineer",
+        "ENG",
+        "SWE",
         "INR",
         1_000_000,
         inr_rate.id,
     )
     _add_employee_salary(
-        session, "EMP-003", "IN", "Engineering", "Manager", "INR", 3_000_000, inr_rate.id
+        session, "EMP-003", "IN", "ENG", "PM", "INR", 3_000_000, inr_rate.id
     )
     _add_employee_salary(
-        session, "EMP-004", "US", "Engineering", "Engineer", "USD", 150_000, usd_rate.id
+        session, "EMP-004", "US", "ENG", "SWE", "USD", 150_000, usd_rate.id
     )
     _add_employee_salary(
         session,
         "EMP-005",
         "IN",
-        "Finance",
-        "Analyst",
+        "FIN",
+        "DA",
         "INR",
         9_000_000,
         inr_rate.id,

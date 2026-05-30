@@ -74,7 +74,7 @@ def create_employee(payload: EmployeeCreate, session: SessionDep) -> EmployeeRea
             detail="Employee identifier already exists.",
         ) from error
     session.refresh(employee)
-    return _employee_with_current_salary(session, employee.id)
+    return _to_employee_read(_employee_with_current_salary(session, employee.id))
 
 
 @router.get("", response_model=EmployeeList)
@@ -124,12 +124,12 @@ def get_next_employee_id(session: SessionDep) -> EmployeeNextId:
     return EmployeeNextId(employee_id=f"{EMPLOYEE_ID_PREFIX}{next_number:0{max_width}d}")
 
 
-@router.get("/{employee_uuid}", response_model=EmployeeRead)
+@router.get("/{employee_uuid:uuid}", response_model=EmployeeRead)
 def get_employee(employee_uuid: uuid.UUID, session: SessionDep) -> EmployeeRead:
     return _to_employee_read(_employee_with_current_salary(session, employee_uuid))
 
 
-@router.patch("/{employee_uuid}", response_model=EmployeeRead)
+@router.patch("/{employee_uuid:uuid}", response_model=EmployeeRead)
 def update_employee(
     employee_uuid: uuid.UUID,
     payload: EmployeeUpdate,
@@ -154,7 +154,7 @@ def update_employee(
     return _to_employee_read(_employee_with_current_salary(session, employee_uuid))
 
 
-@router.delete("/{employee_uuid}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{employee_uuid:uuid}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_employee(employee_uuid: uuid.UUID, session: SessionDep) -> None:
     employee = _employee_with_current_salary(session, employee_uuid)
     if employee.to_date is None:

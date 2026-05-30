@@ -4,14 +4,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
-import { deleteEmployee, getEmployee, updateEmployee } from "@/lib/api";
+import { deleteEmployee, getEmployee, listMasterData, updateEmployee } from "@/lib/api";
 import { formatMoney } from "@/lib/format";
-import type { Employee, EmployeeUpdateInput } from "@/lib/types";
+import { fallbackMasterData, labelFor, optionsFor } from "@/lib/masterData";
+import type { Employee, EmployeeUpdateInput, MasterData } from "@/lib/types";
 
 export function EmployeeDetailClient({ employeeId }: { employeeId: string }) {
   const router = useRouter();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState<EmployeeUpdateInput>({});
+  const [masterData, setMasterData] = useState<MasterData[]>(fallbackMasterData);
   const [isEditing, setIsEditing] = useState(false);
   const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,7 +43,21 @@ export function EmployeeDetailClient({ employeeId }: { employeeId: string }) {
       }
     }
 
+    async function loadMasterData() {
+      try {
+        const result = await listMasterData();
+        if (isCurrent) {
+          setMasterData(result);
+        }
+      } catch {
+        if (isCurrent) {
+          setMasterData(fallbackMasterData);
+        }
+      }
+    }
+
     loadEmployee();
+    loadMasterData();
 
     return () => {
       isCurrent = false;
@@ -101,6 +117,9 @@ export function EmployeeDetailClient({ employeeId }: { employeeId: string }) {
   }
 
   const isInactive = employee.to_date !== null;
+  const countryOptions = optionsFor(masterData, "country");
+  const departmentOptions = optionsFor(masterData, "department");
+  const titleOptions = optionsFor(masterData, "job_title");
 
   return (
     <form className="panel" onSubmit={handleSubmit}>
@@ -112,25 +131,28 @@ export function EmployeeDetailClient({ employeeId }: { employeeId: string }) {
           onChange={(value) => setForm((current) => ({ ...current, full_name: value }))}
           value={form.full_name ?? ""}
         />
-        <EditableField
+        <EditableSelectField
           disabled={!isEditing}
           label="Job title"
           onChange={(value) => setForm((current) => ({ ...current, title: value }))}
+          options={titleOptions}
+          readValue={labelFor(masterData, "job_title", form.title ?? "")}
           value={form.title ?? ""}
         />
-        <EditableField
+        <EditableSelectField
           disabled={!isEditing}
           label="Department"
           onChange={(value) => setForm((current) => ({ ...current, department: value }))}
+          options={departmentOptions}
+          readValue={labelFor(masterData, "department", form.department ?? "")}
           value={form.department ?? ""}
         />
-        <EditableField
+        <EditableSelectField
           disabled={!isEditing}
           label="Country"
-          maxLength={2}
-          onChange={(value) =>
-            setForm((current) => ({ ...current, country_code: value.toUpperCase() }))
-          }
+          onChange={(value) => setForm((current) => ({ ...current, country_code: value }))}
+          options={countryOptions}
+          readValue={labelFor(masterData, "country", form.country_code ?? "")}
           value={form.country_code ?? ""}
         />
         <EditableField
@@ -248,6 +270,43 @@ function EditableField({
         type={type}
         value={value}
       />
+    </div>
+  );
+}
+
+function EditableSelectField({
+  label,
+  value,
+  readValue,
+  onChange,
+  options,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  readValue: string;
+  onChange: (value: string) => void;
+  options: MasterData[];
+  disabled: boolean;
+}) {
+  const id = label.toLowerCase().replaceAll(" ", "-");
+  return (
+    <div className="detail-item editable-detail">
+      <label className="detail-label" htmlFor={id}>
+        {label}
+      </label>
+      {disabled ? (
+        <input disabled id={id} value={readValue} />
+      ) : (
+        <select id={id} onChange={(event) => onChange(event.target.value)} value={value}>
+          <option value="">Select {label.toLowerCase()}</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.description}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

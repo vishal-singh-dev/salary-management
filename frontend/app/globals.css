@@ -342,7 +342,8 @@ th {
   gap: 6px;
 }
 
-.editable-detail input {
+.editable-detail input,
+.editable-detail select {
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: 10px;
