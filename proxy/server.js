@@ -36,7 +36,7 @@ app.get("/health", async (_request, response, next) => {
 app.all("/api/:path(*)", async (request, response, next) => {
   try {
     await proxyRequest({
-      backendPath: `/api/v1/${request.params.path}`,
+      backendPath: `/api/${request.params.path}`,
       request,
       response,
     });

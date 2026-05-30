@@ -19,7 +19,7 @@ https://salary-management.vercel.app
 Set this Vercel environment variable:
 
 ```text
-PUBLIC_API_BASE_URL=https://<render-proxy>.onrender.com/api
+PUBLIC_API_BASE_URL=https://<render-proxy>.onrender.com
 ```
 
 The frontend API client sends requests to that base URL.
@@ -69,7 +69,7 @@ The proxy forwards:
 
 ```text
 https://<render-proxy>.onrender.com/api/*
--> http://<ec2-public-ip>:8000/api/v1/*
+-> http://<ec2-public-ip>:8000/api/*
 ```
 
 and:
@@ -136,7 +136,7 @@ Proxy:
 
 ```bash
 curl https://<render-proxy>.onrender.com/health
-curl "https://<render-proxy>.onrender.com/api/master-data?category=Currency"
+curl "https://<render-proxy>.onrender.com/api/v1/master-data?category=Currency"
 ```
 
 Frontend:
